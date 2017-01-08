@@ -1,0 +1,21 @@
+sudo: false
+env:
+  global:
+    secure: TBD  # GH_TOKEN
+  matrix:
+    - LUA_VERSION=luajit-2.0
+    - LUA_VERSION=luajit-2.1
+    - LUA_VERSION=lua-5.1
+    - LUA_VERSION=lua-5.2
+    - LUA_VERSION=lua-5.3
+cache:
+  directories:
+    - .venv
+install:
+  - source .envrc
+  - script/bootstrap
+script:
+  - script/test
+after_success:
+  - '[ "$LUA_VERSION" = "lua-5.1" ] && luacov-coveralls'
+  - script/deploy-docs

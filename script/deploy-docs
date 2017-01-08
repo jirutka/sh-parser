@@ -1,0 +1,100 @@
+#!/bin/sh
+# vim: set ts=4:
+#
+# Generates docs using ldoc and deploys them to the gh-pages branch in
+# the repository.
+#
+set -eu
+
+DEPLOY_BRANCH='gh-pages'
+SOURCE_BRANCH='master'
+SSH_DEPLOY_KEY='.deploykey'
+
+
+build_docs() {
+	local build_dir="$1"
+
+	# This is needed for cleaning stale files; all docs will be regenerated.
+	rm -Rf -- "$build_dir"/ldoc/*
+
+	einfo 'Running ldoc'
+	ldoc --dir "$build_dir"/ldoc --verbose .
+
+	# Remove Last updated timestamp.
+	LANG=C find "$build_dir"/ldoc -name '*.html' \
+		-exec sed -i.BAK 's/<i style="float:right;">Last updated.*//' {} \; \
+		-exec rm {}.BAK \;  # sed -i behaves differently on BSD and GNU...
+}
+
+has_changes() {
+	test -n "$(git status --porcelain)"
+}
+
+remote_origin_url() {
+	if [ -r "$SSH_DEPLOY_KEY" ]; then
+		git config remote.origin.url \
+			| sed -E 's|^https://([^/]+)/(.*)$|git@\1:\2|'
+	else
+		git config remote.origin.url
+	fi
+}
+
+skip_push() {
+	[ -n "${TRAVIS:-}" ] || return 1
+
+	[ "$TRAVIS_PULL_REQUEST" != 'false' ] \
+		|| [ "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" ] \
+		|| [ "$TRAVIS_BUILD_NUMBER.1" != "$TRAVIS_JOB_NUMBER" ]
+}
+
+
+#========================  Main  =========================#
+
+cd "$(dirname "$0")/.."
+. script/bootstrap
+
+einfo 'Updating ldoc documentation'
+
+commit_rev="$(git rev-parse --short HEAD)"
+commit_author="$(git log -n 1 --format='%aN <%aE>')"
+commit_date="$(git log -n 1 --format='%aD')"
+remote_url="$(remote_origin_url)" || die 'Failed to get remote.origin.url'
+build_dir="$(mktemp -q -d "${TMPDIR:-"/tmp"}/docs.XXXX")"
+
+# Use the specified SSH key for cloning/pushing repository, if it's readable.
+if [ -r "$SSH_DEPLOY_KEY" ]; then
+	export SSH_DEPLOY_KEY="$(pwd)/$SSH_DEPLOY_KEY"
+	export GIT_SSH="$(pwd)/script/git-ssh-wrapper"
+fi
+
+if [ -n "${TRAVIS:-}" ]; then
+	git config --global user.name 'Travis CI'
+	git config --global user.email 'travis-ci@local.host'
+fi
+
+git clone --progress "$remote_url" "$build_dir"
+git -C "$build_dir" checkout "$DEPLOY_BRANCH" \
+	|| die "Branch $DEPLOY_BRANCH does not exist"
+
+build_docs "$build_dir"
+
+cd "$build_dir"
+
+if ! has_changes; then
+	ewarn 'No changes'; exit 0
+fi
+if skip_push; then
+	ewarn 'Skipping push'; exit 0
+fi
+
+einfo 'Commiting changes'
+git add --all
+git commit \
+	--message="Built from $commit_rev" \
+	--author="$commit_author" \
+	--date="$commit_date"
+
+einfo "Pushing changes to $DEPLOY_BRANCH branch"
+git push --progress "$remote_url" "$DEPLOY_BRANCH:$DEPLOY_BRANCH"
+
+rm -Rf -- "$build_dir"
