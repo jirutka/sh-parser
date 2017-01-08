@@ -113,10 +113,17 @@ local reserved_words = iter(RESERVED_WORDS)
 local reserved_word = values(reserved_words):reduce(op.add, P(false))
 
 -- A map of all used terminal symbols (patterns).
-local terminals = chain(OPERATORS_1, OPERATORS_2)
-    :map(function(k, v) return k, P(v) end)
-    :chain(BASE_TERMINALS, reserved_words)
-    :tomap()
+local terminals = chain(
+      BASE_TERMINALS,
+      iter(OPERATORS_1):map(function(k, v)
+          -- Ensure that operator x does not match xx when xx is valid operator.
+          return k, values(OPERATORS_2):index_of(v..v) and P(v) * -P(v) or P(v)
+        end),
+      iter(OPERATORS_2):map(function(k, v)
+          return k, P(v)
+        end),
+      reserved_words
+    ):tomap()
 
 
 --- Grammar to be processed by `lpeg_sugar`.
