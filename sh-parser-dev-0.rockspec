@@ -22,6 +22,7 @@ dependencies = {
   -- This is original "fun" module, but uploaded to LuaRocks by alloyed,
   -- because upstream don't care about LuaRocks.
   'fun-alloyed ~> 0.1.3',
+  --'PegDebug ~> 0.40' optional
 }
 
 build = {
@@ -29,7 +30,9 @@ build = {
   modules = {
     ['sh-parser'] = 'sh-parser/init.lua',
     ['sh-parser.fun_ext'] = 'sh-parser/fun_ext.lua',
+    ['sh-parser.grammar'] = 'sh-parser/grammar.lua',
     ['sh-parser.lpeg_sugar'] = 'sh-parser/lpeg_sugar.lua',
+    ['sh-parser.parser'] = 'sh-parser/parser.lua',
     ['sh-parser.utils'] = 'sh-parser/utils.lua',
   },
 }
