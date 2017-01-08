@@ -1,0 +1,89 @@
+#!/usr/bin/env lua
+
+local optarg = require 'optarg'
+local fun    = require 'sh-parser.fun_ext'
+local parser = require 'sh-parser.parser'
+
+-- Allow either cjson, or th-LuaJSON.
+local ok, json = pcall(require, 'cjson')
+if not ok then
+  json = require 'json'
+end
+
+local exit = os.exit
+local iter = fun.iter
+
+local HELP_MSG = [[
+Usage:
+  ${progname} [options] FILE
+  ${progname} (-h | -V)
+
+Parse POSIX sh compliant script and produce its AST as JSON.
+
+Arguments:
+  FILE  Path of script to parse or "-" to read from stdin.
+
+Options:
+  -t, --trace           Trace parser (needs pegdebug module).
+  -V, --version         Show version information and exit
+  -h, --help            Show this message and exit
+
+Homepage: https://github.com/jirutka/sh-parser]]
+
+
+local function parse_args ()
+  return optarg.from_opthelp(HELP_MSG:match('Options:\n(.*)\n\n'))
+end
+
+local function printf_err (str, ...)
+  io.stderr:write((str..'\n'):format(...))
+end
+
+local function print_help ()
+  local msg, _ = HELP_MSG:gsub('${progname}', _G.arg[0])
+  print(msg)
+end
+
+
+---------  M a i n  ---------
+
+local opts, args = parse_args()
+
+if opts.help then
+  print_help()
+  exit(0)
+
+elseif opts.version then
+  print('sh-parser TODO')
+  exit(0)
+
+elseif #args ~= 1 then
+  print_help()
+  exit(2)
+end
+
+local file
+if args[1] == '-' then
+  file = io.stdin
+else
+  local err; file, err = io.open(args[1], 'r')
+  if err then
+    printf_err('ERROR: %s', err)
+    exit(2)
+  end
+end
+
+local script = file:read('*all')
+
+local parser_opts = iter(opts)
+    :filter(function(k) return #k > 1 end)
+    :map(function(k) return k:gsub('-', '_') end)
+    :tomap()
+
+local ast = parser.parse(script, parser_opts)
+if not ast then
+  printf_err('ERROR: Failed to parse the script')
+  exit(1)
+end
+
+print(json.encode(ast))

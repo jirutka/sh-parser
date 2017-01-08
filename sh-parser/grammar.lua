@@ -166,7 +166,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   do_group            = DO * compound_list * DONE
   SimpleCommand       = cmd_prefix * ( __ * CmdName * cmd_suffix^-1 )^-1
                       + CmdName * cmd_suffix^-1
-  CmdName             = unreserved_word
+  CmdName             = Word - ( reserved_words * ( WSP + LF + SEMI ) )
   cmd_prefix          = ( IORedirect + Assignment ) * ( __ * cmd_prefix )^-1
   cmd_suffix          = ( __ * ( IORedirect + CmdArgument ) )^1
   CmdArgument         = Word
@@ -187,7 +187,6 @@ local function grammar (_ENV)  --luacheck: no unused args
                         + quoted(SQUOTE)
                         + Cs( -HASH * unquoted_char^1 )
                         )^1
-  unreserved_word     = Word - ( reserved_words * ( WSP + LF + SEMI ) )
   unquoted_char       = escaped(WSP + LF + SQUOTE + DQUOTE + operator_chars)
                       + ( ANY - WSP - LF - SQUOTE - DQUOTE - operator_chars )
   newline_list        = ( _ * Comment^-1 * LF )^1 * _
