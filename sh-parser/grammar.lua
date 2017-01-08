@@ -8,6 +8,7 @@ local utils      = require 'sh-parser.utils'
 
 local build_grammar = lpeg_sugar.build_grammar
 local chain         = fun.chain
+local iter          = fun.iter
 local op            = fun.op
 local values        = utils.values
 
@@ -35,13 +36,17 @@ local function quoted (quote)
   return quote * Cs( (escaped(quote) + 1 - quote)^0 ) * quote
 end
 
+
+local BOF = P(function(_, pos) return pos == 1 end)  -- Beginning Of File
+local EOF = P(-1)
+
 local BASE_TERMINALS = {
   ALPHA     = R('AZ', 'az'),
   ANY       = P(1),
-  BOF       = P(function(_, pos) return pos == 1 end),  -- Beginning Of File
+  BOF       = BOF,
   DIGIT     = R('09'),
   DQUOTE    = P('"'),
-  EOF       = P(-1),
+  EOF       = EOF,
   EQUALS    = P('='),
   HASH      = P('#'),
   LF        = P('\n'),
@@ -97,14 +102,20 @@ local RESERVED_WORDS = {
 -- Pattern that matches any character used in shell operators.
 local operator_chars = values(OPERATORS_1):map(P):reduce(op.add, P(false))
 
+-- XXX: is this correct?
+local word_boundary = S(' \t\n') + BOF + EOF + operator_chars
+
+local reserved_words = iter(RESERVED_WORDS)
+    :map(function(k, v) return k, P(v) * #word_boundary end)
+
 -- Pattern that matches any shell reserved word.
 -- XXX: sort them?
-local reserved_words = values(RESERVED_WORDS):map(P):reduce(op.add, P(false))
+local reserved_word = values(reserved_words):reduce(op.add, P(false))
 
 -- A map of all used terminal symbols (patterns).
-local terminals = chain(OPERATORS_1, OPERATORS_2, RESERVED_WORDS)
+local terminals = chain(OPERATORS_1, OPERATORS_2)
     :map(function(k, v) return k, P(v) end)
-    :chain(BASE_TERMINALS)
+    :chain(BASE_TERMINALS, reserved_words)
     :tomap()
 
 
@@ -159,14 +170,14 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * do_group
   UntilClause         = UNTIL * compound_list
                         * do_group
-  FunctionDefinition  = ( Name - reserved_words ) * _ * LPAREN * _ * RPAREN * linebreak
+  FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN * _ * RPAREN * linebreak
                         * function_body
   function_body       = compound_command * IORedirect^0
   BraceGroup          = LBRACE * compound_list * RBRACE
   do_group            = DO * compound_list * DONE
   SimpleCommand       = cmd_prefix * ( __ * CmdName * cmd_suffix^-1 )^-1
                       + CmdName * cmd_suffix^-1
-  CmdName             = Word - ( reserved_words * ( WSP + LF + SEMI ) )
+  CmdName             = Word - reserved_word
   cmd_prefix          = ( IORedirect + Assignment ) * ( __ * cmd_prefix )^-1
   cmd_suffix          = ( __ * ( IORedirect + CmdArgument ) )^1
   CmdArgument         = Word
