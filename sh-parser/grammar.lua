@@ -14,6 +14,8 @@ local values        = utils.values
 
 local B  = lpeg.B
 local C  = lpeg.C
+local Cb = lpeg.Cb
+local Cg = lpeg.Cg
 local Cs = lpeg.Cs
 local P  = lpeg.P
 local R  = lpeg.R
@@ -136,9 +138,18 @@ local function grammar (_ENV)  --luacheck: no unused args
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
   complete_commands   = CompleteCommand * ( newline_list * CompleteCommand )^0
   CompleteCommand     = and_or * ( separator_op * and_or )^0 * separator_op^-1
-  and_or              = pipeline * ( _ * ( AND_IF + OR_IF ) * linebreak * pipeline )^0
-  pipeline            = ( BANG * __ )^-1 * PipeSequence
-  PipeSequence        = command * ( _ * PIPE * linebreak * command )^0
+                      -- Note: Anonymous Cg is here only to exclude named Cg from capture in AST.
+  and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
+                                                       + OrList
+                                                       + Cb'pipeline' ) )
+  AndList             = Cb'pipeline' * _ * AND_IF * linebreak * and_or
+  OrList              = Cb'pipeline' * _ * OR_IF * linebreak * and_or
+  pipeline            = Not
+                      + pipe_sequence
+  Not                 = BANG * __ * pipe_sequence
+  pipe_sequence       = Cg( Cg(command, 'command') * ( PipeSequence
+                                                     + Cb'command' ) )
+  PipeSequence        = Cb'command' * ( _ * PIPE * linebreak * command )^1
   command             = FunctionDefinition
                       + compound_command * IORedirect^0
                       + SimpleCommand
