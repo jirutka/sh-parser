@@ -151,7 +151,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                                                      + Cb'command' ) )
   PipeSequence        = Cb'command' * ( _ * PIPE * linebreak * command )^1
   command             = FunctionDefinition
-                      + compound_command * IORedirect^0
+                      + compound_command * io_redirect^0
                       + SimpleCommand
   compound_command    = BraceGroup
                       + Subshell
@@ -190,20 +190,21 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * do_group
   FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN * _ * RPAREN * linebreak
                         * function_body
-  function_body       = compound_command * IORedirect^0
+  function_body       = compound_command * io_redirect^0
   BraceGroup          = LBRACE * compound_list * RBRACE
   do_group            = DO * compound_list * DONE
   SimpleCommand       = cmd_prefix * ( __ * CmdName * cmd_suffix^-1 )^-1
                       + CmdName * cmd_suffix^-1
   CmdName             = Word - reserved_word
-  cmd_prefix          = ( IORedirect + Assignment ) * ( __ * cmd_prefix )^-1
-  cmd_suffix          = ( __ * ( IORedirect + CmdArgument ) )^1
+  cmd_prefix          = ( io_redirect + Assignment ) * ( __ * cmd_prefix )^-1
+  cmd_suffix          = ( __ * ( io_redirect + CmdArgument ) )^1
   CmdArgument         = Word
-  IORedirect          = IONumber^-1 * ( IOFile + io_here )
-  IONumber            = C( DIGIT^1 ) / tonumber
-  IOFile              = ( GREATAND + DGREAT + CLOBBER + LESSAND + LESSGREAT + GREAT + LESS ) * _ * filename
-  filename            = Word
-  io_here             = ( DLESSDASH + DLESS ) * _ * here_end
+  io_redirect         = IORedirectFile
+                      + io_here
+  IORedirectFile      = io_number^-1 * io_file_op * _ * Word
+  io_here             = io_number^-1 * ( DLESSDASH + DLESS ) * _ * here_end
+  io_number           = C( DIGIT^1 ) / tonumber
+  io_file_op          = C( GREATAND + DGREAT + CLOBBER + LESSAND + LESSGREAT + GREAT + LESS )
   here_end            = Word
   separator_op        = _ * ( AND + SEMI ) * _
   separator           = separator_op * linebreak
