@@ -22,36 +22,23 @@ local R  = lpeg.R
 local S  = lpeg.S
 
 
---- Creates a pattern that captures escaped `patt`.
---
--- @tparam lpeg.Pattern patt The pattern to escape.
--- @treturn lpeg.Pattern
-local function escaped (patt)
-  return P'\\' / '' * patt
-end
-
---- Creates a pattern that captures quoted text.
---
--- @tparam string quote The quotation mark.
--- @treturn lpeg.Pattern
-local function quoted (quote)
-  return quote * Cs( (escaped(quote) + 1 - quote)^0 ) * quote
-end
-
-
+local ANY = P(1)
 local BOF = P(function(_, pos) return pos == 1 end)  -- Beginning Of File
 local EOF = P(-1)
+local ESC = P('\\')  -- escape character
+local LF  = P('\n')
 
 local BASE_TERMINALS = {
   ALPHA     = R('AZ', 'az'),
-  ANY       = P(1),
+  ANY       = ANY,
   BOF       = BOF,
   DIGIT     = R('09'),
   DQUOTE    = P('"'),
   EOF       = EOF,
   EQUALS    = P('='),
+  ESC       = ESC,
   HASH      = P('#'),
-  LF        = P('\n'),
+  LF        = LF,
   SQUOTE    = P("'"),
   WSP       = S(' \t'),
 }
@@ -126,6 +113,25 @@ local terminals = chain(
         end),
       reserved_words
     ):tomap()
+
+
+--- Creates a pattern that captures escaped `patt`.
+--
+-- @tparam lpeg.Pattern patt The pattern to escape.
+-- @treturn lpeg.Pattern
+local function escaped (patt)
+  return patt == LF
+      and ESC * patt / '' -- produce empty capture
+      or ESC / '' * patt  -- omit escaping char from capture
+end
+
+--- Creates a pattern that captures quoted text.
+--
+-- @tparam string quote The quotation mark.
+-- @treturn lpeg.Pattern
+local function quoted (quote)
+  return quote * Cs( (escaped(quote) + ANY - quote)^0 ) * quote
+end
 
 
 --- Grammar to be processed by `lpeg_sugar`.
@@ -217,8 +223,8 @@ local function grammar (_ENV)  --luacheck: no unused args
                         + quoted(SQUOTE)
                         + Cs( -HASH * unquoted_char^1 )
                         )^1
-  unquoted_char       = escaped(WSP + LF + SQUOTE + DQUOTE + operator_chars)
-                      + ( ANY - WSP - LF - SQUOTE - DQUOTE - operator_chars )
+  unquoted_char       = escaped(LF) + escaped(WSP + SQUOTE + DQUOTE + operator_chars)
+                      + ( ANY - LF - WSP - SQUOTE - DQUOTE - operator_chars )
   newline_list        = ( _ * Comment^-1 * LF )^1 * _
   linebreak           = _ * newline_list^-1
   Comment             = ( B(WSP) + B(LF) + B(SEMI) + B(AND) + #BOF )
