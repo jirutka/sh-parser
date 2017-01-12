@@ -30,7 +30,9 @@ function M.parse (input, opts)
     and lpeg.P(inject_tracing(grammar()))
     or lpeg.P(grammar())
 
-  local ast = parser:match(input)
+  -- The 3rd argument is a table used for storing indexes of heredoc end.
+  -- It's accessed with Carg(1) in the grammar.
+  local ast = parser:match(input, 1, {})
   if not ast then
     return nil
   end

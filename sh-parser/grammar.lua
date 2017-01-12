@@ -10,16 +10,19 @@ local build_grammar = lpeg_sugar.build_grammar
 local chain         = fun.chain
 local iter          = fun.iter
 local op            = fun.op
+local par           = utils.partial
+local unshift       = utils.unshift
 local values        = utils.values
 
-local B  = lpeg.B
-local C  = lpeg.C
-local Cb = lpeg.Cb
-local Cg = lpeg.Cg
-local Cs = lpeg.Cs
-local P  = lpeg.P
-local R  = lpeg.R
-local S  = lpeg.S
+local B    = lpeg.B
+local C    = lpeg.C
+local Carg = lpeg.Carg
+local Cb   = lpeg.Cb
+local Cg   = lpeg.Cg
+local Cs   = lpeg.Cs
+local P    = lpeg.P
+local R    = lpeg.R
+local S    = lpeg.S
 
 
 local ANY = P(1)
@@ -133,6 +136,74 @@ local function quoted (quote)
   return quote * Cs( (escaped(quote) + ANY - quote)^0 ) * quote
 end
 
+--- Skip already captured here-document.
+--
+-- This is a function for match-time capture that is called from grammar each
+-- time when a new line is consumed. When the current position of the parser is
+-- inside previously captured heredoc, then it returns position of the end of
+-- that heredoc. Basically it teleports parser behind the heredoc.
+--
+-- @tparam int pos The current position.
+-- @tparam {{int,int},...} heredocs (see `capture_heredoc`)
+-- @treturn int The new current position.
+local function skip_heredoc (_, pos, heredocs)
+  -- Note: Elements are ordered from latest to earliest to optimize this lookup.
+  -- Note: We cannot remove skipped heredocs in this function, because the
+  --       matched rule may be eventually backtracked!
+  for _, range in ipairs(heredocs) do
+    local first, last = range[1], range[2]
+
+    if pos > last then
+      break
+    elseif pos >= first and pos < last then
+      return last
+    end
+  end
+
+  return pos
+end
+
+--- Capture here-document.
+--
+-- @tparam bool strip_tabs Whether to strip leading tabs (for `<<-`).
+-- @tparam string subject The entire subject (i.e. input text).
+-- @tparam int pos The current position.
+-- @tparam string word The captured delimiter word.
+-- @tparam {{int,int},...} heredocs The list with positions of captured
+--   heredocs. Each element is a list with two integers - position of the first
+--   character inside heredoc and position of newline after closing delimiter.
+-- @treturn true Consume no subject.
+-- @treturn table Heredoc content.
+local function capture_heredoc (strip_tabs, subject, pos, word, heredocs)
+  local delimiter = word.children[1]
+
+  local delim_pat = '\n'..(strip_tabs and '\t*' or '')
+                        ..delimiter:gsub('%p', '%%%1')  -- escape puncatation chars
+                        ..'\n'
+  local doc_start = subject:find('\n', pos, true) or #subject
+  local doc_end, delim_end = (subject..'\n'):find(delim_pat, doc_start)
+  if not doc_end then
+    doc_end, delim_end = #subject + 1, #subject
+  end
+
+  -- Skip overlapping heredocs (multiple heredoc redirects on the same line).
+  while true do
+    local new_pos = skip_heredoc(nil, doc_start, heredocs)
+    if new_pos == doc_start then
+      break
+    end
+    doc_start = new_pos
+  end
+
+  unshift(heredocs, { doc_start, delim_end or #subject })
+
+  local content = subject:sub(doc_start, doc_end - 1)  -- keep leading newline
+  content = strip_tabs and content:gsub('\n\t+', '\n') or content
+  content = content:sub(2)  -- strip leading newline
+
+  return true, content
+end
+
 
 --- Grammar to be processed by `lpeg_sugar`.
 local function grammar (_ENV)  --luacheck: no unused args
@@ -140,6 +211,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   local _  = WSP^0  -- optional whitespace(s)
   local __ = WSP^1  -- at least one whitespace
+  local heredocs_index = Carg(1)  -- state table used for skipping heredocs
 
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
   complete_commands   = CompleteCommand * ( newline_list * CompleteCommand )^0
@@ -206,12 +278,14 @@ local function grammar (_ENV)  --luacheck: no unused args
   cmd_suffix          = ( __ * ( io_redirect + CmdArgument ) )^1
   CmdArgument         = Word
   io_redirect         = IORedirectFile
-                      + io_here
+                      + IOHereDoc
   IORedirectFile      = io_number^-1 * io_file_op * _ * Word
-  io_here             = io_number^-1 * ( DLESSDASH + DLESS ) * _ * here_end
+  IOHereDoc           = io_number^-1 * (
+                            DLESSDASH * _ * Cmt(Word * heredocs_index, par(capture_heredoc, true))
+                          + DLESS * _ * Cmt(Word * heredocs_index, par(capture_heredoc, false))
+                        )
   io_number           = C( DIGIT^1 ) / tonumber
   io_file_op          = C( GREATAND + DGREAT + CLOBBER + LESSAND + LESSGREAT + GREAT + LESS )
-  here_end            = Word
   separator_op        = _ * ( AND + SEMI ) * _
   separator           = separator_op * linebreak
                       + newline_list
@@ -225,7 +299,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                         )^1
   unquoted_char       = escaped(LF) + escaped(WSP + SQUOTE + DQUOTE + operator_chars)
                       + ( ANY - LF - WSP - SQUOTE - DQUOTE - operator_chars )
-  newline_list        = ( _ * Comment^-1 * LF )^1 * _
+  newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
   linebreak           = _ * newline_list^-1
   Comment             = ( B(WSP) + B(LF) + B(SEMI) + B(AND) + #BOF )
                         * HASH * C( ( ANY - LF )^0 )

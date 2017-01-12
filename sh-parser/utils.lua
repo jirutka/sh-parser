@@ -3,6 +3,7 @@
 
 local fun = require 'sh-parser.fun_ext'
 
+local insert = table.insert
 local map    = fun.map
 local type   = type
 
@@ -67,6 +68,12 @@ function M.partial (fn, ...)
   return function(...)
     return call(fn, args1, ...)
   end
+end
+
+--- Inserts `value` at the front of the list, moving other elements upwards.
+-- This is just a shortcut for `table.insert(list, 1, value)`.
+function M.unshift (list, value)
+  insert(list, 1, value)
 end
 
 --- Returns values from the given table.
