@@ -41,26 +41,26 @@ local WSP     = S(' \t')
 
 -- Shell operators containing single character.
 local OPERATORS_1 = {
-  AND       = '&',
-  GREAT     = '>',
-  LESS      = '<',
-  LPAREN    = '(',
-  PIPE      = '|',
-  RPAREN    = ')',
-  SEMI      = ';',
+  AND_OP       = '&',
+  GREAT_OP     = '>',
+  LESS_OP      = '<',
+  LPAREN_OP    = '(',
+  PIPE_OP      = '|',
+  RPAREN_OP    = ')',
+  SEMI_OP      = ';',
 }
 -- Shell operators containing more than one character.
 local OPERATORS_2 = {
-  AND_IF    = '&&',
-  CLOBBER   = '>|',
-  DGREAT    = '>>',
-  DLESS     = '<<',
-  DLESSDASH = '<<-',
-  DSEMI     = ';;',
-  GREATAND  = '>&',
-  LESSAND   = '<&',
-  LESSGREAT = '<>',
-  OR_IF     = '||',
+  AND_IF_OP    = '&&',
+  CLOBBER_OP   = '>|',
+  DGREAT_OP    = '>>',
+  DLESS_OP     = '<<',
+  DLESSDASH_OP = '<<-',
+  DSEMI_OP     = ';;',
+  GREATAND_OP  = '>&',
+  LESSAND_OP   = '<&',
+  LESSGREAT_OP = '<>',
+  OR_IF_OP     = '||',
 }
 
 -- Shell reserved words.
@@ -78,10 +78,10 @@ local RESERVED_WORDS = {
   UNTIL     = 'until',
   WHILE     = 'while',
 
-  BANG      = '!',
+  BANG_R    = '!',
   IN        = 'in',
-  LBRACE    = '{',
-  RBRACE    = '}',
+  LBRACE_R  = '{',
+  RBRACE_R  = '}',
 }
 
 -- Pattern that matches any character used in shell operators.
@@ -225,14 +225,14 @@ local function grammar (_ENV)  --luacheck: no unused args
   and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
                                                        + OrList
                                                        + Cb'pipeline' ) )
-  AndList             = Cb'pipeline' * _ * AND_IF * linebreak * and_or
-  OrList              = Cb'pipeline' * _ * OR_IF * linebreak * and_or
+  AndList             = Cb'pipeline' * _ * AND_IF_OP * linebreak * and_or
+  OrList              = Cb'pipeline' * _ * OR_IF_OP * linebreak * and_or
   pipeline            = Not
                       + pipe_sequence
-  Not                 = BANG * __ * pipe_sequence
+  Not                 = BANG_R * __ * pipe_sequence
   pipe_sequence       = Cg( Cg(command, 'command') * ( PipeSequence
                                                      + Cb'command' ) )
-  PipeSequence        = Cb'command' * ( _ * PIPE * linebreak * command )^1
+  PipeSequence        = Cb'command' * ( _ * PIPE_OP * linebreak * command )^1
   command             = FunctionDefinition
                       + compound_command * io_redirect^0
                       + SimpleCommand
@@ -243,7 +243,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + IfClause
                       + WhileClause
                       + UntilClause
-  Subshell            = LPAREN * compound_list * _ * RPAREN * _
+  Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _
   compound_list       = linebreak * term * separator^-1
   term                = and_or * ( separator * and_or )^0
   ForClause           = FOR * __ * Name * ( sequential_sep
@@ -252,12 +252,12 @@ local function grammar (_ENV)  --luacheck: no unused args
                                         * do_group
   CaseClause          = CASE * __ * Word * linebreak
                         * IN * linebreak
-                        * ( CaseItem * _ * DSEMI * linebreak )^0
+                        * ( CaseItem * _ * DSEMI_OP * linebreak )^0
                         * CaseItem^-1
                         * ESAC
-  CaseItem            = ( LPAREN * _ )^-1 * Pattern * _ * RPAREN
+  CaseItem            = ( LPAREN_OP * _ )^-1 * Pattern * _ * RPAREN_OP
                         * ( compound_list + linebreak )
-  Pattern             = ( Word - ESAC ) * ( _ * PIPE * _ * Word )^0
+  Pattern             = ( Word - ESAC ) * ( _ * PIPE_OP * _ * Word )^0
   IfClause            = IF * linebreak
                         * term * separator
                         * THEN * compound_list
@@ -271,10 +271,10 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * do_group
   UntilClause         = UNTIL * compound_list
                         * do_group
-  FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN * _ * RPAREN * linebreak
+  FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
                         * function_body
   function_body       = compound_command * io_redirect^0
-  BraceGroup          = LBRACE * compound_list * RBRACE
+  BraceGroup          = LBRACE_R * compound_list * RBRACE_R
   do_group            = DO * compound_list * DONE
   SimpleCommand       = cmd_prefix * ( __ * CmdName * cmd_suffix^-1 )^-1
                       + CmdName * cmd_suffix^-1
@@ -286,15 +286,16 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + IOHereDoc
   IORedirectFile      = io_number^-1 * io_file_op * _ * Word
   IOHereDoc           = io_number^-1 * (
-                            DLESSDASH * _ * Cmt(Word * heredocs_index, par(capture_heredoc, true))
-                          + DLESS * _ * Cmt(Word * heredocs_index, par(capture_heredoc, false))
+                            DLESSDASH_OP * _ * Cmt(Word * heredocs_index, par(capture_heredoc, true))
+                          + DLESS_OP * _ * Cmt(Word * heredocs_index, par(capture_heredoc, false))
                         )
   io_number           = C( DIGIT^1 ) / tonumber
-  io_file_op          = C( GREATAND + DGREAT + CLOBBER + LESSAND + LESSGREAT + GREAT + LESS )
-  separator_op        = _ * ( AND + SEMI ) * _
+  io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
+                         + LESSGREAT_OP + GREAT_OP + LESS_OP )
+  separator_op        = _ * ( AND_OP + SEMI_OP ) * _
   separator           = separator_op * linebreak
                       + newline_list
-  sequential_sep      = _ * SEMI * linebreak
+  sequential_sep      = _ * SEMI_OP * linebreak
                       + newline_list
   Assignment          = Name * EQUALS * Word^-1
   Name                = C( ( ALPHA + '_' ) * ( ALPHA + DIGIT + '_' )^0 )
@@ -306,7 +307,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + ( ANY - LF - WSP - SQUOTE - DQUOTE - operator_chars )
   newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
   linebreak           = _ * newline_list^-1
-  Comment             = ( B(WSP) + B(LF) + B(SEMI) + B(AND) + #BOF )
+  Comment             = ( B(WSP) + B(LF) + B(SEMI_OP) + B(AND_OP) + #BOF )
                         * HASH * C( ( ANY - LF )^0 )
 end
 
