@@ -244,14 +244,14 @@ local function grammar (_ENV)  --luacheck: no unused args
   pipe_sequence       = Cg( Cg(command, 'command') * ( PipeSequence
                                                      + Cb'command' ) )
   PipeSequence        = Cb'command' * ( _ * PIPE_OP * linebreak * command )^1
-  command             = FunctionDefinition
-                      + compound_command * io_redirect^0
+  command             = compound_command * io_redirect^0
+                      + FunctionDefinition
                       + SimpleCommand
   compound_command    = BraceGroup
                       + Subshell
+                      + IfClause
                       + ForClause
                       + CaseClause
-                      + IfClause
                       + WhileClause
                       + UntilClause
   Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _
