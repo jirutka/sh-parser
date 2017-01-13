@@ -120,12 +120,25 @@ local function escaped (patt)
       or ESC / '' * patt  -- omit escaping char from capture
 end
 
+--- Creates a pattern that captures any character, except the specified
+-- patterns when not preceded by the escape character.
+--
+-- Example: any_except(P' ') -> escaped(P' ') + 1 - P' '
+--
+-- @tparam lpeg.Pattern ... The patterns to *not* capture.
+-- @treturn lpeg.Pattern
+local function any_except (...)
+  local patts = iter({...})
+  return patts:map(escaped):reduce(op.add, P(false))
+       + patts:reduce(op.sub, ANY)
+end
+
 --- Creates a pattern that captures quoted text.
 --
 -- @tparam string quote The quotation mark.
 -- @treturn lpeg.Pattern
 local function quoted (quote)
-  return quote * Cs( (escaped(quote) + ANY - quote)^0 ) * quote
+  return quote * Cs( any_except(quote)^0 ) * quote
 end
 
 --- Skip already captured here-document.
@@ -287,7 +300,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   Name                = C( ( ALPHA + '_' ) * ( ALPHA + DIGIT + '_' )^0 )
   Word                = ( quoted(DQUOTE)
                         + quoted(SQUOTE)
-                        + Cs( -HASH * unquoted_char^1 )
+                        + Cs( -HASH * any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars)^1 )
                         )^1
   unquoted_char       = escaped(LF) + escaped(WSP + SQUOTE + DQUOTE + operator_chars)
                       + ( ANY - LF - WSP - SQUOTE - DQUOTE - operator_chars )
