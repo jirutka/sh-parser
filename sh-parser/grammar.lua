@@ -30,12 +30,15 @@ local ALPHA   = R('AZ', 'az')
 local ANY     = P(1)
 local BOF     = P(function(_, pos) return pos == 1 end)  -- Beginning Of File
 local DIGIT   = R('09')
+local DOLLAR  = P('$')
 local DQUOTE  = P('"')
 local EOF     = P(-1)    -- End Of File
 local EQUALS  = P('=')
 local ESC     = P('\\')  -- escape character
 local HASH    = P('#')
 local LF      = P('\n')
+local LPAREN  = P('(')
+local RPAREN  = P(')')
 local SQUOTE  = P("'")
 local WSP     = S(' \t')
 
@@ -131,14 +134,6 @@ local function any_except (...)
   local patts = iter({...})
   return patts:map(escaped):reduce(op.add, P(false))
        + patts:reduce(op.sub, ANY)
-end
-
---- Creates a pattern that captures quoted text.
---
--- @tparam string quote The quotation mark.
--- @treturn lpeg.Pattern
-local function quoted (quote)
-  return quote * Cs( any_except(quote)^0 ) * quote
 end
 
 --- Skip already captured here-document.
@@ -299,14 +294,27 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + newline_list
   Assignment          = Name * EQUALS * Word^-1
   Name                = C( ( ALPHA + '_' ) * ( ALPHA + DIGIT + '_' )^0 )
-  Word                = ( quoted(DQUOTE)
-                        + quoted(SQUOTE)
-                        + Cs( -HASH * any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars)^1 )
+  Word                = ( squoted_word
+                        + dquoted_word
+                        + expansion
+                        + unquoted_word
                         )^1
-  unquoted_char       = escaped(LF) + escaped(WSP + SQUOTE + DQUOTE + operator_chars)
-                      + ( ANY - LF - WSP - SQUOTE - DQUOTE - operator_chars )
+  squoted_word        = SQUOTE * Cs( any_except(SQUOTE)^0 ) * SQUOTE
+  dquoted_word        = DQUOTE * ( expansion
+                                 + Cs( any_except(DQUOTE, expansion_begin)^1 )
+                                 )^0 * DQUOTE
+  unquoted_word       = Cs( -HASH * any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars, expansion_begin)^1 )
   newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
   linebreak           = _ * newline_list^-1
+
+  -- Expansions
+  expansion_begin     = DOLLAR * LPAREN
+  expansion           = CommandSubstitution
+  CommandSubstitution = DOLLAR * LPAREN * linebreak
+                        * ( complete_commands * linebreak )^-1
+                        * RPAREN
+
+  -- Others
   Comment             = ( B(WSP) + B(LF) + B(SEMI_OP) + B(AND_OP) + #BOF )
                         * HASH * C( ( ANY - LF )^0 )
 end
