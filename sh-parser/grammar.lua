@@ -25,26 +25,19 @@ local R    = lpeg.R
 local S    = lpeg.S
 
 
-local ANY = P(1)
-local BOF = P(function(_, pos) return pos == 1 end)  -- Beginning Of File
-local EOF = P(-1)
-local ESC = P('\\')  -- escape character
-local LF  = P('\n')
-
-local BASE_TERMINALS = {
-  ALPHA     = R('AZ', 'az'),
-  ANY       = ANY,
-  BOF       = BOF,
-  DIGIT     = R('09'),
-  DQUOTE    = P('"'),
-  EOF       = EOF,
-  EQUALS    = P('='),
-  ESC       = ESC,
-  HASH      = P('#'),
-  LF        = LF,
-  SQUOTE    = P("'"),
-  WSP       = S(' \t'),
-}
+-- Terminals
+local ALPHA   = R('AZ', 'az')
+local ANY     = P(1)
+local BOF     = P(function(_, pos) return pos == 1 end)  -- Beginning Of File
+local DIGIT   = R('09')
+local DQUOTE  = P('"')
+local EOF     = P(-1)    -- End Of File
+local EQUALS  = P('=')
+local ESC     = P('\\')  -- escape character
+local HASH    = P('#')
+local LF      = P('\n')
+local SQUOTE  = P("'")
+local WSP     = S(' \t')
 
 -- Shell operators containing single character.
 local OPERATORS_1 = {
@@ -104,9 +97,8 @@ local reserved_words = iter(RESERVED_WORDS)
 -- XXX: sort them?
 local reserved_word = values(reserved_words):reduce(op.add, P(false))
 
--- A map of all used terminal symbols (patterns).
+-- Map of special terminal symbols (patterns).
 local terminals = chain(
-      BASE_TERMINALS,
       iter(OPERATORS_1):map(function(k, v)
           -- Ensure that operator x does not match xx when xx is valid operator.
           return k, values(OPERATORS_2):index_of(v..v) and P(v) * -P(v) or P(v)
