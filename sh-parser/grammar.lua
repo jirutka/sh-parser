@@ -36,10 +36,13 @@ local EOF     = P(-1)    -- End Of File
 local EQUALS  = P('=')
 local ESC     = P('\\')  -- escape character
 local HASH    = P('#')
+local LBRACE  = P('{')
 local LF      = P('\n')
 local LPAREN  = P('(')
+local RBRACE  = P('}')
 local RPAREN  = P(')')
 local SQUOTE  = P("'")
+local WORD    = R('AZ', 'az', '09') + P('_')
 local WSP     = S(' \t')
 
 -- Shell operators containing single character.
@@ -86,6 +89,16 @@ local RESERVED_WORDS = {
   LBRACE_R  = '{',
   RBRACE_R  = '}',
 }
+
+-- Pattern for Special parameters.
+local SPECIAL_PARAM = S('@*#?-$!0')
+
+-- Pattern that matches any parameter expansion "operator" that may be used
+-- between <parameter-name> and <word>.
+local PARAM_EXP_OP = iter({
+    ':-', '-', ':=', '=', ':?', '?', ':+', '+', '%%', '%', '##', '#', -- POSIX
+    ':', '//', '/'  -- non-POSIX
+  }):map(P):reduce(op.add, P(false))
 
 -- Pattern that matches any character used in shell operators.
 local operator_chars = values(OPERATORS_1):map(P):reduce(op.add, P(false))
@@ -293,7 +306,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   sequential_sep      = _ * SEMI_OP * linebreak
                       + newline_list
   Assignment          = Name * EQUALS * Word^-1
-  Name                = C( ( ALPHA + '_' ) * ( ALPHA + DIGIT + '_' )^0 )
+  Name                = C( ( ALPHA + '_' ) * WORD^0 )
   Word                = ( squoted_word
                         + dquoted_word
                         + expansion
@@ -308,11 +321,24 @@ local function grammar (_ENV)  --luacheck: no unused args
   linebreak           = _ * newline_list^-1
 
   -- Expansions
-  expansion_begin     = DOLLAR * LPAREN
+  expansion_begin     = DOLLAR * ( LPAREN + LBRACE + WORD + SPECIAL_PARAM )
   expansion           = CommandSubstitution
+                      + ParameterExpansion
+
   CommandSubstitution = DOLLAR * LPAREN * linebreak
                         * ( complete_commands * linebreak )^-1
                         * RPAREN
+
+  ParameterExpansion  = DOLLAR * ( encl_param_exp + param_name )
+  encl_param_exp      = LBRACE * ( HASH * param_name
+                                 + param_name * ( C(PARAM_EXP_OP) * param_exp_word^-1 )^-1
+                                 ) * RBRACE
+  param_name          = C( SPECIAL_PARAM + DIGIT^1 ) + Name
+  param_exp_word      = ( squoted_word
+                        + dquoted_word
+                        + expansion
+                        + Cs( any_except(RBRACE, LF, expansion_begin)^1 )
+                        )^1
 
   -- Others
   Comment             = ( B(WSP) + B(LF) + B(SEMI_OP) + B(AND_OP) + #BOF )
