@@ -43,6 +43,7 @@ local LPAREN  = P('(')
 local RBRACE  = P('}')
 local RDPAREN = P('))')
 local RPAREN  = P(')')
+local SEMI    = P(';')
 local SQUOTE  = P("'")
 local WORD    = R('AZ', 'az', '09') + P('_')
 local WSP     = S(' \t')
@@ -230,7 +231,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
   complete_commands   = CompleteCommand * ( newline_list * CompleteCommand )^0
-  CompleteCommand     = and_or * ( separator_op * and_or )^0 * separator_op^-1
+  CompleteCommand     = and_or * ( separator_op * -HASH * and_or )^0 * separator_op^-1
                       -- Note: Anonymous Cg is here only to exclude named Cg from capture in AST.
   and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
                                                        + OrList
@@ -309,16 +310,16 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + newline_list
   Assignment          = Name * EQUALS * Word^-1
   Name                = C( ( ALPHA + '_' ) * WORD^0 )
-  Word                = ( squoted_word
-                        + dquoted_word
-                        + expansion
-                        + unquoted_word
-                        )^1
+  Word                = ( -HASH + #EQUALS ) * ( squoted_word
+                                              + dquoted_word
+                                              + expansion
+                                              + unquoted_word
+                                              )^1
   squoted_word        = SQUOTE * Cs( any_except(SQUOTE)^0 ) * SQUOTE
   dquoted_word        = DQUOTE * ( expansion
                                  + Cs( any_except(DQUOTE, expansion_begin)^1 )
                                  )^0 * DQUOTE
-  unquoted_word       = Cs( -HASH * any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars, expansion_begin)^1 )
+  unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars, expansion_begin)^1 )
   newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
   linebreak           = _ * newline_list^-1
 
@@ -352,7 +353,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                                  )^0 * RPAREN
 
   -- Others
-  Comment             = ( B(WSP) + B(LF) + B(SEMI_OP) + B(AND_OP) + #BOF )
+  Comment             = ( B(WSP + LF + SEMI + AND_OP) + #BOF )
                         * HASH * C( ( ANY - LF )^0 )
 end
 
