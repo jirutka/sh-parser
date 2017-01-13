@@ -37,9 +37,11 @@ local EQUALS  = P('=')
 local ESC     = P('\\')  -- escape character
 local HASH    = P('#')
 local LBRACE  = P('{')
+local LDPAREN = P('((')
 local LF      = P('\n')
 local LPAREN  = P('(')
 local RBRACE  = P('}')
+local RDPAREN = P('))')
 local RPAREN  = P(')')
 local SQUOTE  = P("'")
 local WORD    = R('AZ', 'az', '09') + P('_')
@@ -322,8 +324,9 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   -- Expansions
   expansion_begin     = DOLLAR * ( LPAREN + LBRACE + WORD + SPECIAL_PARAM )
-  expansion           = CommandSubstitution
-                      + ParameterExpansion
+  expansion           = ParameterExpansion
+                      + ArithmeticExpansion
+                      + CommandSubstitution
 
   CommandSubstitution = DOLLAR * LPAREN * linebreak
                         * ( complete_commands * linebreak )^-1
@@ -339,6 +342,14 @@ local function grammar (_ENV)  --luacheck: no unused args
                         + expansion
                         + Cs( any_except(RBRACE, LF, expansion_begin)^1 )
                         )^1
+
+  ArithmeticExpansion = DOLLAR * LDPAREN * ArithmeticExpr * RDPAREN
+  -- XXX: This is incomplete, but should be good enough for now.
+  ArithmeticExpr      = Cs( ( any_except(LPAREN, RPAREN)
+                            + balanced_parens )^0 )
+  balanced_parens     = LPAREN * ( any_except(LPAREN, RPAREN)
+                                 + balanced_parens
+                                 )^0 * RPAREN
 
   -- Others
   Comment             = ( B(WSP) + B(LF) + B(SEMI_OP) + B(AND_OP) + #BOF )
