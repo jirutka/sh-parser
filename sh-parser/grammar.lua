@@ -287,11 +287,11 @@ local function grammar (_ENV)  --luacheck: no unused args
   function_body       = compound_command * io_redirect^0
   BraceGroup          = LBRACE_R * compound_list * RBRACE_R
   do_group            = DO * compound_list * DONE
-  SimpleCommand       = cmd_prefix * ( __ * CmdName * cmd_suffix^-1 )^-1
+  SimpleCommand       = cmd_prefix * ( _ * CmdName * cmd_suffix^-1 )^-1
                       + CmdName * cmd_suffix^-1
   CmdName             = Word - reserved_word
-  cmd_prefix          = ( io_redirect + Assignment ) * ( __ * cmd_prefix )^-1
-  cmd_suffix          = ( __ * ( io_redirect + CmdArgument ) )^1
+  cmd_prefix          = ( io_redirect + Assignment ) * ( _ * cmd_prefix )^-1
+  cmd_suffix          = ( _ * ( io_redirect + CmdArgument ) )^1
   CmdArgument         = Word
   io_redirect         = IORedirectFile
                       + IOHereDoc
