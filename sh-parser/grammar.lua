@@ -277,8 +277,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   BraceGroup          = LBRACE_R * compound_list * RBRACE_R
   Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _
 
-  IfClause            = IF * linebreak
-                        * term * separator
+  IfClause            = IF * compound_list
                         * THEN * compound_list
                         * elif_part^0
                         * else_part^-1
