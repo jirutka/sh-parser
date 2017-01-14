@@ -242,8 +242,9 @@ local function grammar (_ENV)  --luacheck: no unused args
   AndList             = Cb'pipeline' * _ * AND_IF_OP * linebreak * and_or
   OrList              = Cb'pipeline' * _ * OR_IF_OP * linebreak * and_or
 
-  compound_list       = linebreak * term * separator^-1
-  term                = and_or * ( separator * and_or )^0
+  compound_list       = linebreak * Cg( Cg(and_or, 'and_or') * ( CompoundList
+                                                               + Cb'and_or' ) ) * separator^-1
+  CompoundList        = Cb'and_or' * ( separator * and_or )^1
 
   separator_op        = _ * ( AND_OP + SEMI_OP ) * _
   separator           = separator_op * linebreak
