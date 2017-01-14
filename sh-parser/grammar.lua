@@ -231,6 +231,9 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
   complete_commands   = CompleteCommand * ( newline_list * CompleteCommand )^0
+
+  -----------------------------  Lists  -----------------------------
+
   CompleteCommand     = and_or * ( separator_op * -HASH * and_or )^0 * separator_op^-1
                       -- Note: Anonymous Cg is here only to exclude named Cg from capture in AST.
   and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
@@ -238,15 +241,31 @@ local function grammar (_ENV)  --luacheck: no unused args
                                                        + Cb'pipeline' ) )
   AndList             = Cb'pipeline' * _ * AND_IF_OP * linebreak * and_or
   OrList              = Cb'pipeline' * _ * OR_IF_OP * linebreak * and_or
+
+  compound_list       = linebreak * term * separator^-1
+  term                = and_or * ( separator * and_or )^0
+
+  separator_op        = _ * ( AND_OP + SEMI_OP ) * _
+  separator           = separator_op * linebreak
+                      + newline_list
+  sequential_sep      = _ * SEMI_OP * linebreak
+                      + newline_list
+
+  ---------------------------  Pipelines  ---------------------------
+
   pipeline            = Not
                       + pipe_sequence
   Not                 = BANG_R * __ * pipe_sequence
   pipe_sequence       = Cg( Cg(command, 'command') * ( PipeSequence
                                                      + Cb'command' ) )
   PipeSequence        = Cb'command' * ( _ * PIPE_OP * linebreak * command )^1
+
   command             = compound_command * io_redirect^0
                       + FunctionDefinition
                       + SimpleCommand
+
+  -----------------------  Compound Commands  -----------------------
+
   compound_command    = BraceGroup
                       + Subshell
                       + IfClause
@@ -254,21 +273,10 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + CaseClause
                       + WhileClause
                       + UntilClause
+
+  BraceGroup          = LBRACE_R * compound_list * RBRACE_R
   Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _
-  compound_list       = linebreak * term * separator^-1
-  term                = and_or * ( separator * and_or )^0
-  ForClause           = FOR * __ * Name * ( sequential_sep
-                                          + linebreak * IN * ( __ * Word )^0 * sequential_sep
-                                          + _ )
-                                        * do_group
-  CaseClause          = CASE * __ * Word * linebreak
-                        * IN * linebreak
-                        * ( CaseItem * _ * DSEMI_OP * linebreak )^0
-                        * CaseItem^-1
-                        * ESAC
-  CaseItem            = ( LPAREN_OP * _ )^-1 * Pattern * _ * RPAREN_OP
-                        * ( compound_list + linebreak )
-  Pattern             = ( Word - ESAC ) * ( _ * PIPE_OP * _ * Word )^0
+
   IfClause            = IF * linebreak
                         * term * separator
                         * THEN * compound_list
@@ -278,21 +286,44 @@ local function grammar (_ENV)  --luacheck: no unused args
   elif_part           = ELIF * compound_list
                         * THEN * compound_list
   else_part           = ELSE * compound_list
+
+  ForClause           = FOR * __ * Name * ( sequential_sep
+                                          + linebreak * IN * ( __ * Word )^0 * sequential_sep
+                                          + _ )
+                                        * do_group
+
+  CaseClause          = CASE * __ * Word * linebreak
+                        * IN * linebreak
+                        * ( CaseItem * _ * DSEMI_OP * linebreak )^0
+                        * CaseItem^-1
+                        * ESAC
+  CaseItem            = ( LPAREN_OP * _ )^-1 * Pattern * _ * RPAREN_OP
+                        * ( compound_list + linebreak )
+  Pattern             = ( Word - ESAC ) * ( _ * PIPE_OP * _ * Word )^0
+
   WhileClause         = WHILE * compound_list
                         * do_group
+
   UntilClause         = UNTIL * compound_list
                         * do_group
+
+  do_group            = DO * compound_list * DONE
+
+  ----------------------  Function Definition  ----------------------
+
   FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
                         * function_body
   function_body       = compound_command * io_redirect^0
-  BraceGroup          = LBRACE_R * compound_list * RBRACE_R
-  do_group            = DO * compound_list * DONE
+
+  ------------------------  Simple Commands  ------------------------
+
   SimpleCommand       = cmd_prefix * ( _ * CmdName * cmd_suffix^-1 )^-1
                       + CmdName * cmd_suffix^-1
   CmdName             = Word - reserved_word
   cmd_prefix          = ( io_redirect + Assignment ) * ( _ * cmd_prefix )^-1
   cmd_suffix          = ( _ * ( io_redirect + CmdArgument ) )^1
   CmdArgument         = Word
+
   io_redirect         = IORedirectFile
                       + IOHereDoc
   IORedirectFile      = io_number^-1 * io_file_op * _ * Word
@@ -303,12 +334,11 @@ local function grammar (_ENV)  --luacheck: no unused args
   io_number           = C( DIGIT^1 ) / tonumber
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
-  separator_op        = _ * ( AND_OP + SEMI_OP ) * _
-  separator           = separator_op * linebreak
-                      + newline_list
-  sequential_sep      = _ * SEMI_OP * linebreak
-                      + newline_list
+
   Assignment          = Name * EQUALS * Word^-1
+
+  -----------------------------  Words  -----------------------------
+
   Name                = C( ( ALPHA + '_' ) * WORD^0 )
   Word                = ( -HASH + #EQUALS ) * ( squoted_word
                                               + dquoted_word
@@ -320,10 +350,12 @@ local function grammar (_ENV)  --luacheck: no unused args
                                  + Cs( any_except(DQUOTE, expansion_begin)^1 )
                                  )^0 * DQUOTE
   unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars, expansion_begin)^1 )
+
   newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
   linebreak           = _ * newline_list^-1
 
-  -- Expansions
+  ---------------------------  Expansions  --------------------------
+
   expansion_begin     = DOLLAR * ( LPAREN + LBRACE + WORD + SPECIAL_PARAM )
   expansion           = ParameterExpansion
                       + ArithmeticExpansion
@@ -352,7 +384,8 @@ local function grammar (_ENV)  --luacheck: no unused args
                                  + balanced_parens
                                  )^0 * RPAREN
 
-  -- Others
+  -----------------------------  Others  ----------------------------
+
   Comment             = ( B(WSP + LF + SEMI + AND_OP) + #BOF )
                         * HASH * C( ( ANY - LF )^0 )
 end
