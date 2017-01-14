@@ -10,7 +10,11 @@ source = {
 
 description = {
   summary = 'Parser of POSIX Shell Command Language',
-  detailed = [[TODO]],
+  detailed = [[
+This is a POSIX shell parser written in LPeg that generates AST of the parsed
+shell script without evaluating. It supports complete syntax of POSIX Shell
+Command Language plus few common extensions implemented e.g. by Busybox ash
+and dash. It does not support Bash/ZSH-specific features.]],
   homepage = 'https://github.com/jirutka/sh-parser',
   maintainer = 'Jakub Jirutka <jakub@jirutka.cz>',
   license = 'MIT',

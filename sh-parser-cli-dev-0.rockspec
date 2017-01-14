@@ -10,7 +10,10 @@ source = {
 
 description = {
   summary = 'Parser of POSIX Shell Command Language - command-line utility',
-  detailed = [[TODO]],
+  detailed = [[
+This is a command-line utility for sh-parser, a POSIX shell parser written in
+LPeg that generates AST of the parsed shell script without evaluating.
+It parsers the given shell script and generates its AST in JSON.]],
   homepage = 'https://github.com/jirutka/sh-parser',
   maintainer = 'Jakub Jirutka <jakub@jirutka.cz>',
   license = 'MIT',
