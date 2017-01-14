@@ -9,6 +9,7 @@ local fun   = require 'sh-parser.fun_ext'
 local iter       = fun.iter
 local assert_arg = utils.assert_arg
 local is_upper   = utils.is_upper
+local lpeg_type  = lpeg.type
 local LUA_V      = utils.LUA_V
 
 local Cc = lpeg.Cc
@@ -79,7 +80,7 @@ function M.build_grammar (func, defs, global_env)
         })
       }),
       __newindex = function(tab, name, value)
-        if lpeg.type(value) == 'pattern' then
+        if lpeg_type(value) == 'pattern' then
           if not init_defined then
             env.grammar[1] = name
             init_defined = true
