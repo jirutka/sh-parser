@@ -291,8 +291,8 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * THEN * compound_list
   else_part           = ELSE * compound_list
 
-  ForClause           = FOR * __ * Name * ( sequential_sep
-                                          + linebreak * IN * ( __ * Word )^0 * sequential_sep
+  ForClause           = FOR * __ * Name * ( linebreak * IN * ( __ * Word )^0 * sequential_sep
+                                          + sequential_sep
                                           + _ )
                                         * do_group
 
