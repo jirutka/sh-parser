@@ -230,21 +230,25 @@ local function grammar (_ENV)  --luacheck: no unused args
   local heredocs_index = Carg(1)  -- state table used for skipping heredocs
 
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
-  complete_commands   = CompleteCommand * ( newline_list * CompleteCommand )^0
+  complete_commands   = complete_command * ( newline_list * complete_command )^0
 
   -----------------------------  Lists  -----------------------------
+  -- Note: Anonymous Cg around named Cg is used only to exclude
+  -- the named Cg from captures in AST.
 
-  CompleteCommand     = and_or * ( separator_op * -HASH * and_or )^0 * separator_op^-1
-                      -- Note: Anonymous Cg is here only to exclude named Cg from capture in AST.
+  complete_command    = Cg( Cg(and_or, 'and_or') * ( CompleteCommand
+                                                   + Cb'and_or' ) ) * separator_op^-1
+  CompleteCommand     = Cb'and_or' * ( separator_op * -HASH * and_or )^1
+
   and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
                                                        + OrList
                                                        + Cb'pipeline' ) )
   AndList             = Cb'pipeline' * _ * AND_IF_OP * linebreak * and_or
   OrList              = Cb'pipeline' * _ * OR_IF_OP * linebreak * and_or
 
-  compound_list       = linebreak * Cg( Cg(and_or, 'and_or') * ( CompoundList
-                                                               + Cb'and_or' ) ) * separator^-1
-  CompoundList        = Cb'and_or' * ( separator * and_or )^1
+  compound_list       = linebreak * Cg( Cg(and_or, 'and_or2') * ( CompoundList
+                                                                + Cb'and_or2' ) ) * separator^-1
+  CompoundList        = Cb'and_or2' * ( separator * and_or )^1
 
   separator_op        = _ * ( AND_OP + SEMI_OP ) * _
   separator           = separator_op * linebreak
