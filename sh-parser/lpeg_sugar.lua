@@ -21,24 +21,39 @@ local V    = lpeg.V
 
 local F = {}
 
+--- Handler called when the *pattern* (rule) is being assigned to
+-- the variable *name*. It should add the pattern to the `env.grammar` table.
+--
+-- @tparam string name
+-- @tparam lpeg.Pattern pattern
+-- @tparam table env Environment of the function given to `build_grammar`.
 function F.on_define_rule (name, pattern, env)
   local name_init = name:sub(1, 1)
 
   if name_init ~= '_' and is_upper(name_init) then
     pattern = Cc(name) * Cp() * Ct(pattern) * Cp() * Carg(1) * Carg(2) / function(...)
-      return env.create_ast_node(...)
+      return env.on_match_rule(...)
     end
   end
 
   env.grammar[name] = pattern
 end
 
+--- Handler called when an undeclared variable is accessed inside the function
+-- given to `build_grammar`. It should return `lpeg.V`.
+--
+-- @tparam string name
+-- @tparam table env Environment of the function given to `build_grammar`.
+-- @treturn lpeg.Pattern
 function F.on_get_variable (name, env)
   env.used_vars[name] = (env.used_vars[name] or 0) + 1
   return V(name)
 end
 
-function F.on_complete (env)
+--- Handler called right before the resulting grammar is returned.
+--
+-- @tparam table env Environment of the function given to `build_grammar`.
+function F.on_grammar_built (env)
   for name, cnt in pairs(env.used_vars) do
     if not env.grammar[name] then
       error(('Undefined non-terminal "%s" referenced %d times'):format(name, cnt))
@@ -46,8 +61,18 @@ function F.on_complete (env)
   end
 end
 
-function F.create_ast_node (rule_name, start_pos, children, end_pos, subject, state)  --luacheck: no unused args
-  return { tag = rule_name, loc = { start_pos, end_pos }, children = children }
+--- Handler called during parsing when an upper-case rule is matched (when
+-- using default `on_define_rule`).
+--
+-- @tparam string name Name of the matched rule.
+-- @tparam int start_pos
+-- @tparam table captures A table of captures produced by the rule.
+-- @tparam int end_pos
+-- @tparam string subject The entire parsed text.
+-- @tparam table state
+-- @treturn table
+function F.on_match_rule (name, start_pos, captures, end_pos, subject, state)  --luacheck: no unused args
+  return { tag = name, loc = { start_pos, end_pos }, children = captures }
 end
 
 
@@ -99,7 +124,7 @@ function M.build_grammar (func, defs, global_env)
   end
   func(env)
 
-  env.on_complete(env)
+  env.on_grammar_built(env)
 
   return assert(env.grammar)
 end
