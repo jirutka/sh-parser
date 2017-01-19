@@ -12,10 +12,11 @@ local is_upper   = utils.is_upper
 local lpeg_type  = lpeg.type
 local LUA_V      = utils.LUA_V
 
-local Cc = lpeg.Cc
-local Cp = lpeg.Cp
-local Ct = lpeg.Ct
-local V  = lpeg.V
+local Carg = lpeg.Carg
+local Cc   = lpeg.Cc
+local Cp   = lpeg.Cp
+local Ct   = lpeg.Ct
+local V    = lpeg.V
 
 
 local F = {}
@@ -24,7 +25,7 @@ function F.on_define_rule (name, pattern, env)
   local name_init = name:sub(1, 1)
 
   if name_init ~= '_' and is_upper(name_init) then
-    pattern = Cc(name) * Cp() * Ct(pattern) * Cp() / function(...)
+    pattern = Cc(name) * Cp() * Ct(pattern) * Cp() * Carg(1) * Carg(2) / function(...)
       return env.create_ast_node(...)
     end
   end
@@ -45,7 +46,7 @@ function F.on_complete (env)
   end
 end
 
-function F.create_ast_node (rule_name, start_pos, children, end_pos)
+function F.create_ast_node (rule_name, start_pos, children, end_pos, subject, state)  --luacheck: no unused args
   return { tag = rule_name, loc = { start_pos, end_pos }, children = children }
 end
 

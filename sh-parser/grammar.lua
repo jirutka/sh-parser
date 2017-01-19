@@ -227,7 +227,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   local _  = WSP^0  -- optional whitespace(s)
   local __ = WSP^1  -- at least one whitespace
-  local heredocs_index = Carg(1)  -- state table used for skipping heredocs
+  local heredocs_index = Carg(3)  -- state table used for skipping heredocs
 
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
   complete_commands   = complete_command * ( newline_list * complete_command )^0
