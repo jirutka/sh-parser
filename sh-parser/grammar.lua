@@ -29,6 +29,7 @@ local S    = lpeg.S
 local ALPHA   = R('AZ', 'az')
 local ANY     = P(1)
 local BOF     = P(function(_, pos) return pos == 1 end)  -- Beginning Of File
+local BQUOTE  = P('`')
 local DIGIT   = R('09')
 local DOLLAR  = P('$')
 local DQUOTE  = P('"')
@@ -361,13 +362,20 @@ local function grammar (_ENV)  --luacheck: no unused args
   ---------------------------  Expansions  --------------------------
 
   expansion_begin     = DOLLAR * ( LPAREN + LBRACE + WORD + SPECIAL_PARAM )
+                      + BQUOTE
+
   expansion           = ParameterExpansion
                       + ArithmeticExpansion
                       + CommandSubstitution
+                      + CommandSubBackquote
 
   CommandSubstitution = DOLLAR * LPAREN * linebreak
                         * ( complete_commands * linebreak )^-1
                         * RPAREN
+  -- XXX: Backquoted command substitution has very odd escaping rules that
+  -- makes it complicated to recursively parse. Since this syntax is basically
+  -- deprecated, we parse it just as a single quoted text.
+  CommandSubBackquote = BQUOTE * Cs( any_except(BQUOTE)^0 ) * BQUOTE
 
   ParameterExpansion  = DOLLAR * ( encl_param_exp + param_name )
   encl_param_exp      = LBRACE * ( HASH * param_name
