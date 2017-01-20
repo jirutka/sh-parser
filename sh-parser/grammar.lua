@@ -266,7 +266,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                                                      + Cb'command' ) )
   PipeSequence        = Cb'command' * ( _ * PIPE_OP * linebreak * command )^1
 
-  command             = compound_command * io_redirect^0
+  command             = compound_command
                       + FunctionDefinition
                       + SimpleCommand
 
@@ -280,14 +280,14 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + WhileClause
                       + UntilClause
 
-  BraceGroup          = LBRACE_R * compound_list * RBRACE_R
-  Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _
+  BraceGroup          = LBRACE_R * compound_list * RBRACE_R * io_redirects
+  Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _ * io_redirects
 
   IfClause            = IF * compound_list
                         * THEN * compound_list
                         * elif_part^0
                         * else_part^-1
-                        * FI
+                        * FI * io_redirects
   elif_part           = ELIF * compound_list
                         * THEN * compound_list
   else_part           = ELSE * compound_list
@@ -301,7 +301,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * IN * linebreak
                         * ( CaseItem * _ * DSEMI_OP * linebreak )^0
                         * CaseItem^-1
-                        * ESAC
+                        * ESAC * io_redirects
   CaseItem            = ( LPAREN_OP * _ )^-1 * Pattern * _ * RPAREN_OP
                         * ( compound_list + linebreak )
   Pattern             = ( Word - ESAC ) * ( _ * PIPE_OP * _ * Word )^0
@@ -312,13 +312,13 @@ local function grammar (_ENV)  --luacheck: no unused args
   UntilClause         = UNTIL * compound_list
                         * do_group
 
-  do_group            = DO * compound_list * DONE
+  do_group            = DO * compound_list * DONE * io_redirects
 
   ----------------------  Function Definition  ----------------------
 
   FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
                         * function_body
-  function_body       = compound_command * io_redirect^0
+  function_body       = compound_command * io_redirects
 
   ------------------------  Simple Commands  ------------------------
 
@@ -329,6 +329,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   cmd_suffix          = ( _ * ( io_redirect + CmdArgument ) )^1
   CmdArgument         = Word
 
+  io_redirects        = Ct( io_redirect^0 )
   io_redirect         = _ * ( IORedirectFile
                             + IOHereDoc )
   IORedirectFile      = io_number^-1 * io_file_op * _ * Word
