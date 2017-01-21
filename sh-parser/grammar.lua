@@ -237,9 +237,13 @@ local function grammar (_ENV)  --luacheck: no unused args
   -- Note: Anonymous Cg around named Cg is used only to exclude
   -- the named Cg from captures in AST.
 
-  complete_command    = Cg( Cg(and_or, 'and_or') * ( CompleteCommand
-                                                   + Cb'and_or' ) ) * separator_op^-1
-  CompleteCommand     = Cb'and_or' * ( separator_op * -HASH * and_or )^1
+  complete_command    = Cg( Cg(async_cmd, 'async_cmd') * ( CompleteCommand
+                                                         + Cb'async_cmd' ) ) * separator_op^-1
+  CompleteCommand     = Cb'async_cmd' * ( separator_op * -HASH * async_cmd )^1
+
+  async_cmd           = Cg( Cg(and_or, 'and_or') * ( AsyncCommand
+                                                   + Cb'and_or' ) )
+  AsyncCommand        = Cb'and_or' * _ * AND_OP
 
   and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
                                                        + OrList
@@ -247,11 +251,14 @@ local function grammar (_ENV)  --luacheck: no unused args
   AndList             = Cb'pipeline' * _ * AND_IF_OP * linebreak * and_or
   OrList              = Cb'pipeline' * _ * OR_IF_OP * linebreak * and_or
 
-  compound_list       = linebreak * Cg( Cg(and_or, 'and_or2') * ( CompoundList
-                                                                + Cb'and_or2' ) ) * separator^-1
-  CompoundList        = Cb'and_or2' * ( separator * and_or )^1
+  compound_list       = linebreak
+                        * Cg( Cg(async_cmd, 'async_cmd2') * ( CompoundList
+                                                            + Cb'async_cmd2' ) )
+                        * separator^-1
+  CompoundList        = Cb'async_cmd2' * ( separator * async_cmd )^1
 
-  separator_op        = _ * ( AND_OP + SEMI_OP ) * _
+  separator_op        = _ * SEMI_OP * _
+                      + B(AND_OP) * _
   separator           = separator_op * linebreak
                       + newline_list
   sequential_sep      = _ * SEMI_OP * linebreak
