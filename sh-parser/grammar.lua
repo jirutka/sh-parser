@@ -300,9 +300,8 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * THEN * compound_list
   else_part           = ELSE * compound_list
 
-  ForClause           = FOR * __ * Name * ( linebreak * IN * ( __ * Word )^0 * sequential_sep
-                                          + sequential_sep
-                                          + _ )
+  ForClause           = FOR * __ * Name * ( linebreak * IN * Ct( ( __ * Word )^0 ) * sequential_sep
+                                          + Cc({}) * ( sequential_sep + _ ) )
                                         * do_group
 
   CaseClause          = CASE * __ * Word * linebreak
