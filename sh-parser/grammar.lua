@@ -334,8 +334,7 @@ local function grammar (_ENV)  --luacheck: no unused args
                       + Cc({}) * CmdName * Ct( cmd_suffix^-1 )
   CmdName             = Word - reserved_word
   cmd_prefix          = ( io_redirect + Assignment ) * ( _ * cmd_prefix )^-1
-  cmd_suffix          = ( _ * ( io_redirect + CmdArgument ) )^1
-  CmdArgument         = Word
+  cmd_suffix          = ( _ * ( io_redirect + Word ) )^1
 
   io_redirects        = Ct( io_redirect^0 )
   io_redirect         = _ * ( IORedirectFile
