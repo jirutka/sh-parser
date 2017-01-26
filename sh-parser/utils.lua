@@ -4,6 +4,7 @@
 local fun = require 'sh-parser.fun_ext'
 
 local insert = table.insert
+local ipairs = ipairs
 local map    = fun.map
 local type   = type
 
@@ -48,6 +49,19 @@ function M.assert_arg (n, value, ttype)
     error(("bad argument #%d: expected a '%s', got a '%s'")
           :format(n, ttype, type(value)), 2)
   end
+end
+
+--- Inserts items from the `src` list at the end of the `dest` list and returns
+-- modified `dest` (i.e. it modifies it in-place!).
+--
+-- @tparam table dest The destination list to extend.
+-- @tparam table src The source list to take items from.
+-- @treturn table The given `dest` list.
+function M.extend (dest, src)
+  for _, item in ipairs(src) do
+    insert(dest, item)
+  end
+  return dest
 end
 
 --- Returns true if the given str is all upper case.

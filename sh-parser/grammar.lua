@@ -8,6 +8,7 @@ local utils      = require 'sh-parser.utils'
 
 local build_grammar = lpeg_sugar.build_grammar
 local chain         = fun.chain
+local extend        = utils.extend
 local iter          = fun.iter
 local op            = fun.op
 local par           = utils.partial
@@ -20,6 +21,7 @@ local Carg = lpeg.Carg
 local Cb   = lpeg.Cb
 local Cc   = lpeg.Cc
 local Cg   = lpeg.Cg
+local Cp   = lpeg.Cp
 local Cs   = lpeg.Cs
 local P    = lpeg.P
 local R    = lpeg.R
@@ -154,6 +156,53 @@ local function any_except (...)
        + patts:reduce(op.sub, ANY)
 end
 
+--- Transforms captures from *and_or_list* into left-associative tree of n-ary
+-- nodes *AndList* and *OrList*.
+--
+-- This function is basically a workaround to create AST for left-associative
+-- operators with the same precedence - `&&` and `||`.
+--
+-- ## Example
+--
+--     subject = "a && b && c || d || e && f"
+--
+--     capture_and_or([func], 1, {{a}, 2, "&&", {b}, 7, "&&", {c}, 12, "||",
+--                                {d}, 17, "||", {e}, 22, "&&", {f}, 27}) -> Z
+--     on_match_rule("AndList", 1, {a, b, c}, 12) -> X
+--     on_match_rule("OrList", 1, {X, d, e}, 22) -> Y
+--     on_match_rule("AndList", 1, {Y, f}, 27) -> Z
+--
+--      Z        Y       X
+--     (AndList (OrList (AndList a b c) d e) f)
+--
+-- @tparam function on_match_rule Function that creates AST nodes from captures.
+-- @tparam int start_pos Index of the first character of the captured substring.
+-- @tparam table captures Table with shape `{ table,int,string, table,int,string, ... }`.
+--   Element *i* is table of children nodes (pipeline and optional comments),
+--   *i + 1* is position of the end of the last child node (int), *i + 2* is
+--   operator ("&&", or "||").
+-- @return Result of the last call of `on_match_rule`.
+local function capture_and_or (on_match_rule, start_pos, captures)
+  local node_name = { ['&&'] = 'AndList', ['||'] = 'OrList' }
+  local node, last_op
+  local children = {}
+
+  for i=1, #captures, 3 do
+    local caps, end_pos, next_op = captures[i], captures[i + 1], captures[i + 2]
+
+    extend(children, caps)
+
+    if last_op and last_op ~= next_op then
+      local name = assert(node_name[last_op], 'invalid operator '..last_op)
+      node = on_match_rule(name, start_pos, children, end_pos)
+      children = { node }
+    end
+    last_op = next_op
+  end
+
+  return node
+end
+
 --- Skip already captured here-document.
 --
 -- This is a function for match-time capture that is called from grammar each
@@ -246,11 +295,13 @@ local function grammar (_ENV)  --luacheck: no unused args
                                                    + Cb'and_or' ) )
   AsyncCommand        = Cb'and_or' * _ * AND_OP
 
-  and_or              = Cg( Cg(pipeline, 'pipeline') * ( AndList
-                                                       + OrList
-                                                       + Cb'pipeline' ) )
-  AndList             = Cb'pipeline' * _ * AND_IF_OP * linebreak * and_or
-  OrList              = Cb'pipeline' * _ * OR_IF_OP * linebreak * and_or
+  and_or              = Cg( Cg(Cp(), 'and_or_cp') * Cg(pipeline, 'pipeline') * ( and_or_list
+                                                                               + Cb'pipeline' ) )
+  and_or_list         = Cb'and_or_cp' * Ct(
+                          Ct( Cb'pipeline' ) * Cp()
+                          * ( _ * and_or_op * Ct( linebreak * pipeline ) * Cp() )^1
+                        ) / par(capture_and_or, on_match_rule)
+  and_or_op           = C( AND_IF_OP + OR_IF_OP )
 
   compound_list       = linebreak
                         * Cg( Cg(async_cmd, 'async_cmd2') * ( CompoundList
