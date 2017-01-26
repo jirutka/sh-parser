@@ -18,6 +18,7 @@ local B    = lpeg.B
 local C    = lpeg.C
 local Carg = lpeg.Carg
 local Cb   = lpeg.Cb
+local Cc   = lpeg.Cc
 local Cg   = lpeg.Cg
 local Cs   = lpeg.Cs
 local P    = lpeg.P
@@ -329,8 +330,8 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   ------------------------  Simple Commands  ------------------------
 
-  SimpleCommand       = cmd_prefix * ( _ * CmdName * cmd_suffix^-1 )^-1
-                      + CmdName * cmd_suffix^-1
+  SimpleCommand       = Ct( cmd_prefix ) * ( _ * CmdName * Ct( cmd_suffix^-1 ) )^-1
+                      + Cc({}) * CmdName * Ct( cmd_suffix^-1 )
   CmdName             = Word - reserved_word
   cmd_prefix          = ( io_redirect + Assignment ) * ( _ * cmd_prefix )^-1
   cmd_suffix          = ( _ * ( io_redirect + CmdArgument ) )^1
