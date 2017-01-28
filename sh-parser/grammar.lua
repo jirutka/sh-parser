@@ -385,9 +385,9 @@ local function grammar (_ENV)  --luacheck: no unused args
   cmd_suffix          = ( _ * ( io_redirect + Word ) )^1
 
   io_redirects        = Ct( io_redirect^0 )
-  io_redirect         = _ * ( IORedirectFile
+  io_redirect         = _ * ( RedirectFile
                             + IOHereDoc )
-  IORedirectFile      = io_number^-1 * io_file_op * _ * Word
+  RedirectFile        = io_number^-1 * io_file_op * _ * Word
   IOHereDoc           = io_number^-1 * (
                             DLESSDASH_OP * _ * Cmt(Word * heredocs_index, par(capture_heredoc, true))
                           + DLESS_OP * _ * Cmt(Word * heredocs_index, par(capture_heredoc, false))
