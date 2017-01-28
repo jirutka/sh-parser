@@ -342,14 +342,12 @@ local function grammar (_ENV)  --luacheck: no unused args
   BraceGroup          = LBRACE_R * compound_list * RBRACE_R * io_redirects
   Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _ * io_redirects
 
-  If                  = IF * compound_list
+  If                  = IfClause * ElifClause^0 * ( ElseClause + Cc({}) ) * FI * io_redirects
+  IfClause            = IF * compound_list
                         * THEN * compound_list
-                        * elif_part^0
-                        * else_part^-1
-                        * FI * io_redirects
-  elif_part           = ELIF * compound_list
+  ElifClause          = ELIF * compound_list
                         * THEN * compound_list
-  else_part           = ELSE * compound_list
+  ElseClause          = ELSE * compound_list
 
   For                 = FOR * __ * Name * ( linebreak * IN * Ct( ( __ * Word )^0 ) * sequential_sep
                                           + Cc({}) * ( sequential_sep + _ ) )
