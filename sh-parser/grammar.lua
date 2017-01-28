@@ -333,16 +333,16 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   compound_command    = BraceGroup
                       + Subshell
-                      + IfClause
-                      + ForClause
-                      + CaseClause
-                      + WhileClause
-                      + UntilClause
+                      + If
+                      + For
+                      + Case
+                      + While
+                      + Until
 
   BraceGroup          = LBRACE_R * compound_list * RBRACE_R * io_redirects
   Subshell            = LPAREN_OP * compound_list * _ * RPAREN_OP * _ * io_redirects
 
-  IfClause            = IF * compound_list
+  If                  = IF * compound_list
                         * THEN * compound_list
                         * elif_part^0
                         * else_part^-1
@@ -351,11 +351,11 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * THEN * compound_list
   else_part           = ELSE * compound_list
 
-  ForClause           = FOR * __ * Name * ( linebreak * IN * Ct( ( __ * Word )^0 ) * sequential_sep
+  For                 = FOR * __ * Name * ( linebreak * IN * Ct( ( __ * Word )^0 ) * sequential_sep
                                           + Cc({}) * ( sequential_sep + _ ) )
                                         * do_group
 
-  CaseClause          = CASE * __ * Word * linebreak
+  Case                = CASE * __ * Word * linebreak
                         * IN * linebreak
                         * ( CaseItem * _ * DSEMI_OP * linebreak )^0
                         * CaseItem^-1
@@ -364,10 +364,10 @@ local function grammar (_ENV)  --luacheck: no unused args
                         * ( compound_list + linebreak )
   Pattern             = ( Word - ESAC ) * ( _ * PIPE_OP * _ * Word )^0
 
-  WhileClause         = WHILE * compound_list
+  While               = WHILE * compound_list
                         * do_group
 
-  UntilClause         = UNTIL * compound_list
+  Until               = UNTIL * compound_list
                         * do_group
 
   do_group            = DO * compound_list * DONE * io_redirects
