@@ -326,7 +326,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   PipeSequence        = Cb'command' * ( _ * PIPE_OP * linebreak * command )^1
 
   command             = compound_command
-                      + FunctionDefinition
+                      + FunctionDef
                       + SimpleCommand
 
   -----------------------  Compound Commands  -----------------------
@@ -374,7 +374,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   ----------------------  Function Definition  ----------------------
 
-  FunctionDefinition  = ( Name - reserved_word ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
+  FunctionDef         = ( Name - reserved_word ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
                         * function_body
   function_body       = compound_command * io_redirects
 
