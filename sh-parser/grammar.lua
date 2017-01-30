@@ -53,7 +53,7 @@ local WORD    = R('AZ', 'az', '09') + P('_')
 local WSP     = S(' \t')
 
 -- Shell operators containing single character.
-local OPERATORS_1 = {
+local operators1 = {
   AND_OP       = '&',
   GREAT_OP     = '>',
   LESS_OP      = '<',
@@ -63,7 +63,7 @@ local OPERATORS_1 = {
   SEMI_OP      = ';',
 }
 -- Shell operators containing more than one character.
-local OPERATORS_2 = {
+local operators2 = {
   AND_IF_OP    = '&&',
   CLOBBER_OP   = '>|',
   DGREAT_OP    = '>>',
@@ -77,7 +77,7 @@ local OPERATORS_2 = {
 }
 
 -- Shell reserved words.
-local RESERVED_WORDS = {
+local reserved_words = {
   CASE      = 'case',
   DO        = 'do',
   DONE      = 'done',
@@ -108,28 +108,28 @@ local PARAM_EXP_OP = iter({
   }):map(P):reduce(op.add, P(false))
 
 -- Pattern that matches any character used in shell operators.
-local operator_chars = values(OPERATORS_1):map(P):reduce(op.add, P(false))
+local OPERATOR_CHARS = values(operators1):map(P):reduce(op.add, P(false))
 
 -- XXX: is this correct?
-local word_boundary = S(' \t\n') + BOF + EOF + operator_chars
+local WORD_BOUNDARY = S(' \t\n') + BOF + EOF + OPERATOR_CHARS
 
-local reserved_words = iter(RESERVED_WORDS)
-    :map(function(k, v) return k, P(v) * #word_boundary end)
+local reserved_words_patt = iter(reserved_words)
+    :map(function(k, v) return k, P(v) * #WORD_BOUNDARY end)
 
 -- Pattern that matches any shell reserved word.
 -- XXX: sort them?
-local reserved_word = values(reserved_words):reduce(op.add, P(false))
+local RESERVED_WORD = values(reserved_words_patt):reduce(op.add, P(false))
 
 -- Map of special terminal symbols (patterns).
 local terminals = chain(
-      iter(OPERATORS_1):map(function(k, v)
+      iter(operators1):map(function(k, v)
           -- Ensure that operator x does not match xx when xx is valid operator.
-          return k, values(OPERATORS_2):index_of(v..v) and P(v) * -P(v) or P(v)
+          return k, values(operators2):index_of(v..v) and P(v) * -P(v) or P(v)
         end),
-      iter(OPERATORS_2):map(function(k, v)
+      iter(operators2):map(function(k, v)
           return k, P(v)
         end),
-      reserved_words
+      reserved_words_patt
     ):tomap()
 
 
@@ -372,7 +372,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   ----------------------  Function Definition  ----------------------
 
-  FunctionDef         = ( Name - reserved_word ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
+  FunctionDef         = ( Name - RESERVED_WORD ) * _ * LPAREN_OP * _ * RPAREN_OP * linebreak
                         * function_body
   function_body       = compound_command * io_redirects
 
@@ -380,7 +380,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   SimpleCommand       = Ct( cmd_prefix ) * ( _ * CmdName * Ct( cmd_suffix^-1 ) )^-1
                       + Cc({}) * CmdName * Ct( cmd_suffix^-1 )
-  CmdName             = Word - reserved_word
+  CmdName             = Word - RESERVED_WORD
   cmd_prefix          = ( io_redirect + Assignment ) * ( _ * cmd_prefix )^-1
   cmd_suffix          = ( _ * ( io_redirect + Word ) )^1
 
@@ -410,7 +410,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   dquoted_word        = DQUOTE * ( expansion
                                  + Cs( any_except(DQUOTE, expansion_begin)^1 )
                                  )^0 * DQUOTE
-  unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, operator_chars, expansion_begin)^1 )
+  unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, OPERATOR_CHARS, expansion_begin)^1 )
 
   newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
   linebreak           = _ * newline_list^-1
