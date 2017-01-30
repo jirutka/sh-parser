@@ -460,6 +460,6 @@ local function grammar (_ENV)  --luacheck: no unused args
 end
 
 
-return function ()
-  return build_grammar(grammar, terminals)
+return function (handlers)
+  return build_grammar(grammar, terminals, handlers)
 end

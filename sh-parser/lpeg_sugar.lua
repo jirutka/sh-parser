@@ -78,7 +78,7 @@ end
 
 local M = {}
 
-function M.build_grammar (func, defs, global_env)
+function M.build_grammar (func, defs, handlers, global_env)
   assert_arg(1, func, 'function')
   defs = defs or {}
 
@@ -88,7 +88,7 @@ function M.build_grammar (func, defs, global_env)
 
   local env_index = iter(lpeg)
     :filter(function(k) return is_upper(k:sub(1, 1)) end)
-    :chain(F, defs)
+    :chain(F, defs, handlers or {})
     :tomap()
 
   local init_defined = false
