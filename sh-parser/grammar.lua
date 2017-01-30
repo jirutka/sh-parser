@@ -460,6 +460,23 @@ local function grammar (_ENV)  --luacheck: no unused args
 end
 
 
-return function (handlers)
-  return build_grammar(grammar, terminals, handlers)
-end
+local M = {}
+
+--- Builds LPeg grammar table.
+--
+-- The grammar expects 3 arguments to be passed into `match` function:
+-- the subject (text being parsed) and two empty tables. The first table is
+-- always passed into `on_match_rule` handler and may be used to store state
+-- information during parsing. The second table is used internally for parsing
+-- here-documents.
+--
+-- @usage
+--   local parser = lpeg.P(grammar.build())
+--   parser:match(subject, 1, subject, {}, {})
+--
+-- @function build
+-- @tparam ?{[string]=function,...} handlers Table of custom handlers.
+-- @treturn table LPeg grammar table.
+M.build = par(build_grammar, grammar, terminals)
+
+return M

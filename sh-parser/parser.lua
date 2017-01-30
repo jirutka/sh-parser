@@ -27,8 +27,8 @@ function M.parse (input, opts)
 
   -- TODO: cache initialized parser
   local parser = opts.trace
-    and lpeg.P(inject_tracing(grammar()))
-    or lpeg.P(grammar())
+    and lpeg.P(inject_tracing(grammar.build()))
+    or lpeg.P(grammar.build())
 
   -- The 3rd and 4th argument is passed to create_ast_node handler.
   -- The 5th argument is a table used for storing indexes of heredoc end.
