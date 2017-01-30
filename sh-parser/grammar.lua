@@ -210,6 +210,7 @@ end
 -- inside previously captured heredoc, then it returns position of the end of
 -- that heredoc. Basically it teleports parser behind the heredoc.
 --
+-- @tparam string _ The entire subject (unused).
 -- @tparam int pos The current position.
 -- @tparam {{int,int},...} heredocs (see `capture_heredoc`)
 -- @treturn int The new current position.
