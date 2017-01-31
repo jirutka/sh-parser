@@ -238,15 +238,13 @@ end
 -- @tparam bool strip_tabs Whether to strip leading tabs (for `<<-`).
 -- @tparam string subject The entire subject (i.e. input text).
 -- @tparam int pos The current position.
--- @tparam string word The captured delimiter word.
+-- @tparam string delimiter The captured delimiter string.
 -- @tparam {{int,int},...} heredocs The list with positions of captured
 --   heredocs. Each element is a list with two integers - position of the first
 --   character inside heredoc and position of newline after closing delimiter.
 -- @treturn true Consume no subject.
 -- @treturn table Heredoc content.
-local function capture_heredoc (strip_tabs, subject, pos, word, heredocs)
-  local delimiter = word.children[1]
-
+local function capture_heredoc (strip_tabs, subject, pos, delimiter, heredocs)
   local delim_pat = '\n'..(strip_tabs and '\t*' or '')
                         ..delimiter:gsub('%p', '%%%1')  -- escape puncatation chars
                         ..'\n'
@@ -391,13 +389,16 @@ local function grammar (_ENV)  --luacheck: no unused args
   io_redirect         = _ * ( RedirectFile
                             + RedirectHereDoc )
   RedirectFile        = ( io_number + Cc(nil) ) * io_file_op * _ * Word
-  RedirectHereDoc     = ( io_number + Cc(nil) ) * (
-                            DLESSDASH_OP * _ * Cmt(Word * heredocs_index, par(capture_heredoc, true))
-                          + DLESS_OP * _ * Cmt(Word * heredocs_index, par(capture_heredoc, false))
-                        )
+  RedirectHereDoc     = ( io_number + Cc(nil) )
+                        * ( DLESSDASH_OP * _ * Cmt(heredoc_delim * heredocs_index,
+                                                   par(capture_heredoc, true))
+                          + DLESS_OP * _ * Cmt(heredoc_delim * heredocs_index,
+                                               par(capture_heredoc, false)) )
   io_number           = C( DIGIT^1 ) / tonumber
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
+  -- XXX: This is simplified a bit, e.g. `foo"bar"` is also valid heredoc delimiter.
+  heredoc_delim       = squoted_word + dquoted_word + unquoted_word
 
   Assignment          = Name * EQUALS * Word^-1
 
