@@ -181,8 +181,10 @@ end
 --   Element *i* is table of children nodes (pipeline and optional comments),
 --   *i + 1* is position of the end of the last child node (int), *i + 2* is
 --   operator ("&&", or "||").
+-- @tparam string subject The entire subject (i.e. input text).
+-- @tparam table state
 -- @return Result of the last call of `on_match_rule`.
-local function capture_and_or (on_match_rule, start_pos, captures)
+local function capture_and_or (on_match_rule, start_pos, captures, subject, state)
   local node_name = { ['&&'] = 'AndList', ['||'] = 'OrList' }
   local node, last_op
   local children = {}
@@ -194,7 +196,7 @@ local function capture_and_or (on_match_rule, start_pos, captures)
 
     if last_op and last_op ~= next_op then
       local name = assert(node_name[last_op], 'invalid operator '..last_op)
-      node = on_match_rule(name, start_pos, children, end_pos)
+      node = on_match_rule(name, start_pos, children, end_pos, subject, state)
       children = { node }
     end
     last_op = next_op
@@ -301,7 +303,7 @@ local function grammar (_ENV)  --luacheck: no unused args
   and_or_list         = Cb'and_or_cp' * Ct(
                           Ct( Cb'pipeline' ) * Cp()
                           * ( _ * and_or_op * Ct( linebreak * pipeline ) * Cp() )^1
-                        ) / par(capture_and_or, on_match_rule)
+                        ) * Carg(1) * Carg(2) / par(capture_and_or, on_match_rule)
   and_or_op           = C( AND_IF_OP + OR_IF_OP )
 
   compound_list       = linebreak
