@@ -357,8 +357,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   Case                = CASE * __ * Word * linebreak
                         * IN * linebreak
-                        * ( CaseItem * _ * DSEMI_OP * linebreak )^0
-                        * CaseItem^-1
+                        * Ct( ( CaseItem * _ * DSEMI_OP * linebreak )^0 * CaseItem^-1 )
                         * ESAC * io_redirects
   CaseItem            = ( LPAREN_OP * _ )^-1 * Pattern * _ * RPAREN_OP
                         * ( compound_list + linebreak )
