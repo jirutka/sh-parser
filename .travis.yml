@@ -17,5 +17,4 @@ install:
 script:
   - script/test
 after_success:
-  - '[ "$LUA_VERSION" = "lua-5.1" ] && luacov-coveralls'
   - script/deploy-docs
