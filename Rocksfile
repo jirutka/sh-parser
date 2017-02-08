@@ -1,6 +1,7 @@
 # sh-parser
 fun-alloyed
 lpeg
+PegDebug
 
 # sh-parser-cli
 lua-cjson
