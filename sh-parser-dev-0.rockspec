@@ -23,9 +23,7 @@ and dash. It does not support Bash/ZSH-specific features.]],
 dependencies = {
   'lua >= 5.1',
   'lpeg ~> 1.0',
-  -- This is original "fun" module, but uploaded to LuaRocks by alloyed,
-  -- because upstream don't care about LuaRocks.
-  'fun-alloyed ~> 0.1.3',
+  'fun ~> 0.1.3',
   --'PegDebug ~> 0.40' optional
 }
 
