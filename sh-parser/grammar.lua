@@ -6,6 +6,7 @@ local fun        = require 'sh-parser.fun_ext'
 local lpeg_sugar = require 'sh-parser.lpeg_sugar'
 local utils      = require 'sh-parser.utils'
 
+local always        = utils.always
 local build_grammar = lpeg_sugar.build_grammar
 local chain         = fun.chain
 local extend        = utils.extend
@@ -416,7 +417,12 @@ local function grammar (_ENV)  --luacheck: no unused args
                                  )^0 * DQUOTE
   unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, OPERATOR_CHARS, expansion_begin)^1 )
 
-  newline_list        = ( _ * Comment^-1 * LF * Cmt(heredocs_index, skip_heredoc) )^1 * _
+  -- The first Cmt is used to force evaluation of the Comment rule (and so
+  -- calling on_match_rule) without producing any capture; to discard comments
+  -- from AST.
+  newline_list        = ( _ * Cmt(Comment, always(true))^-1 * LF
+                        * Cmt(heredocs_index, skip_heredoc)
+                        )^1 * _
   linebreak           = _ * newline_list^-1
 
   ---------------------------  Expansions  --------------------------

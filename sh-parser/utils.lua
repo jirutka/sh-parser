@@ -38,6 +38,13 @@ local M = {}
 
 M.LUA_V = _VERSION:sub(-3)
 
+--- Returns a function that always returns the given `value`.
+function M.always (value)
+  return function()
+    return value
+  end
+end
+
 --- Asserts that the given argument is of the correct type.
 --
 -- @tparam number n The argument index.
