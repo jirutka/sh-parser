@@ -379,10 +379,10 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   ------------------------  Simple Commands  ------------------------
 
-  SimpleCommand       = Ct( cmd_prefix ) * ( _ * CmdName * Ct( cmd_suffix^-1 ) )^-1
-                      + Cc({}) * CmdName * Ct( cmd_suffix^-1 )
-  CmdName             = Word - RESERVED_WORD
+  SimpleCommand       = Ct( cmd_prefix ) * ( _ * cmd_name * Ct( cmd_suffix^-1 ) )^-1
+                      + Cc({}) * cmd_name * Ct( cmd_suffix^-1 )
   cmd_prefix          = ( io_redirect + Assignment ) * ( _ * cmd_prefix )^-1
+  cmd_name            = Word - RESERVED_WORD
   cmd_suffix          = ( _ * ( io_redirect + Word ) )^1
 
   io_redirects        = Ct( io_redirect^0 )
