@@ -19,6 +19,11 @@ local Ct   = lpeg.Ct
 local V    = lpeg.V
 
 
+local function minus_one (int)
+  return int - 1
+end
+
+
 local F = {}
 
 --- Handler called when the *pattern* (rule) is being assigned to
@@ -31,9 +36,8 @@ function F.on_define_rule (name, pattern, env)
   local name_init = name:sub(1, 1)
 
   if name_init ~= '_' and is_upper(name_init) then
-    pattern = Cc(name) * Cp() * Ct(pattern) * Cp() * Carg(1) * Carg(2) / function(...)
-      return env.on_match_rule(...)
-    end
+    pattern = ( Cc(name) * Cp() * Ct(pattern) * (Cp() / minus_one)
+              * Carg(1) * Carg(2) ) / env.on_match_rule
   end
 
   env.grammar[name] = pattern
