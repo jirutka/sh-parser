@@ -1,31 +1,46 @@
 #!/bin/sh
 # vim: set ts=4:
 #
-# Generates a release rockspec(s) for the git tag at HEAD and uploads
-# it/them to the LuaRocks.
+# If git HEAD is tagged as v*, then it generates the release rockspec(s)
+# from the dev-0 rockspec(s) and uploads them to LuaRocks. Otherwise it uploads
+# dev-0 rockspec(s) to LuaRocks.
 #
 set -eu
 
-cd "$(dirname "$0")/.."
-. script/bootstrap
+create_release_spec() {
+	local dev_spec="$1"
+	local git_tag="$2"
 
-git_tag="$(git tag --points-at $(git rev-parse HEAD))"
-[ -n "$git_tag" ] || die 'No tag found at the HEAD'
-
-version="${git_tag#v*}-1"
-
-for spec_dev in *-dev-0.rockspec; do
-	spec_rel="$(echo "$spec_dev" | sed "s/-dev-0/-$version/")"
+	local spec_ver="${git_tag#v*}-1"
+	local rel_spec="$(echo "$dev_spec" | sed "s/-dev-0.rockspec/-$spec_ver.rockspec/")"
 
 	sed -E \
-		-e "s/^version *= *['\"].*['\"]/version = '$version'/" \
+		-e "s/^version *= *['\"].*['\"]/version = '$spec_ver'/" \
 		-e "/^source *= *{/,/^}/ s/(branch|tag) *= *['\"].*['\"]/tag = '$git_tag'/" \
-		"$spec_dev" > "$spec_rel"
+		"$dev_spec" > "$rel_spec"
 
-	printf '# %s:\n' "$spec_rel"
-	cat "$spec_rel"
+	echo "$rel_spec"
+}
 
-	ask 'Do you want to upload the above rockspec to LuaRocks?' 'yes' \
-		&& luarocks upload $@ "$spec_rel"
-	rm "$spec_rel"
+git_release_tag() {
+	git describe --tags --exact-match --match 'v*' 2>/dev/null
+}
+
+
+. "$(dirname "$0")/bootstrap"
+
+[ -n "${LUAROCKS_KEY:-}" ] || die 'LUAROCKS_KEY is not set!'
+
+for dev_spec in *-dev-0.rockspec; do
+	if rel_tag=$(git_release_tag); then
+		rel_spec=$(create_release_spec "$dev_spec" "$rel_tag")
+
+		einfo "Uploading $(basename "$rel_spec") to LuaRocks"
+		luarocks upload --api-key="$LUAROCKS_KEY" "$rel_spec"
+
+		rm -- "$rel_spec"
+	else
+		einfo "Uploading $(basename "$dev_spec") to LuaRocks"
+		luarocks upload --force --api-key="$LUAROCKS_KEY" "$dev_spec"
+	fi
 done
