@@ -9,5 +9,5 @@ optarg
 
 # dev and testing
 inspect
-ldoc
+jirutka/ldoc  # https://github.com/stevedonovan/LDoc/pull/263
 luacheck
