@@ -240,12 +240,13 @@ end
 -- @tparam string subject The entire subject (i.e. input text).
 -- @tparam int pos The current position.
 -- @tparam string delimiter The captured delimiter string.
+-- @tparam bool expand Should be heredoc content expanded?
 -- @tparam {{int,int},...} heredocs The list with positions of captured
 --   heredocs. Each element is a list with two integers - position of the first
 --   character inside heredoc and position of newline after closing delimiter.
 -- @treturn true Consume no subject.
 -- @treturn table Heredoc content.
-local function capture_heredoc (strip_tabs, subject, pos, delimiter, heredocs)
+local function capture_heredoc (strip_tabs, subject, pos, delimiter, expand, heredocs)
   local delim_pat = '\n'..(strip_tabs and '\t*' or '')
                         ..delimiter:gsub('%p', '%%%1')  -- escape puncatation chars
                         ..'\n'
@@ -264,7 +265,7 @@ local function capture_heredoc (strip_tabs, subject, pos, delimiter, heredocs)
     doc_start = new_pos
   end
 
-  unshift(heredocs, { doc_start, delim_end or #subject })
+  unshift(heredocs, { doc_start, delim_end or #subject, expand })
 
   local content = subject:sub(doc_start, doc_end - 1)  -- keep leading newline
   content = strip_tabs and content:gsub('\n\t+', '\n') or content
@@ -398,7 +399,8 @@ local function grammar (_ENV)  --luacheck: no unused args
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
   -- XXX: This is simplified a bit, e.g. `foo"bar"` is also valid heredoc delimiter.
-  heredoc_delim       = squoted_word + dquoted_word + unquoted_word
+  heredoc_delim       = ( squoted_word + dquoted_word ) * Cc(false)
+                      + unquoted_word * Cc(true)
 
   Assignment          = Name * EQUALS * Word^-1
 
