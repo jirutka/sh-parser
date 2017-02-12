@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>sh-parser docs</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>sh-parser</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/grammar.html">grammar</a></li>
+  <li><a href="../modules/lpeg_sugar.html">lpeg_sugar</a></li>
+  <li><a href="../modules/parser.html">parser</a></li>
+  <li><strong>utils</strong></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>utils</code></h1>
+<p>General utility functions</p>
+<p> <strong>Note: This module is not part of the stable API!</strong></p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#always">always (value)</a></td>
+	<td class="summary">Returns a function that always returns the given <code>value</code>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#assert_arg">assert_arg (n, value, ttype)</a></td>
+	<td class="summary">Asserts that the given argument is of the correct type.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#extend">extend (dest, src)</a></td>
+	<td class="summary">Inserts items from the <code>src</code> list at the end of the <code>dest</code> list and returns
+ modified <code>dest</code> (i.e.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#is_upper">is_upper (str)</a></td>
+	<td class="summary">Returns true if the given str is all upper case.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#partial">partial (fn, ...)</a></td>
+	<td class="summary">Partial application.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unshift">unshift (list, value)</a></td>
+	<td class="summary">Inserts <code>value</code> at the front of the list, moving other elements upwards.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#values">values (tab)</a></td>
+	<td class="summary">Returns values from the given table.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "always"></a>
+    <strong>always (value)</strong>
+    </dt>
+    <dd>
+    Returns a function that always returns the given <code>value</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+
+
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "assert_arg"></a>
+    <strong>assert_arg (n, value, ttype)</strong>
+    </dt>
+    <dd>
+    Asserts that the given argument is of the correct type.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">number</span></span>
+         The argument index.
+        </li>
+        <li><span class="parameter">value</span>
+         The value to assert.
+        </li>
+        <li><span class="parameter">ttype</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The expected type.
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if the argument n is not the correct type.
+
+
+
+</dd>
+    <dt>
+    <a name = "extend"></a>
+    <strong>extend (dest, src)</strong>
+    </dt>
+    <dd>
+    Inserts items from the <code>src</code> list at the end of the <code>dest</code> list and returns
+ modified <code>dest</code> (i.e.  it modifies it in-place!).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">dest</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         The destination list to extend.
+        </li>
+        <li><span class="parameter">src</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         The source list to take items from.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        The given <code>dest</code> list.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "is_upper"></a>
+    <strong>is_upper (str)</strong>
+    </dt>
+    <dd>
+    Returns true if the given str is all upper case.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">str</span>
+
+
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "partial"></a>
+    <strong>partial (fn, ...)</strong>
+    </dt>
+    <dd>
+    Partial application.
+ Takes a function <code>fn</code> and arguments, and returns a function <em>fn2</em>.
+ When applied, <em>fn2</em> returns the result of applying <code>fn</code> to the arguments
+ provided initially followed by the arguments provided to <em>fn2</em>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">...</span>
+         Arguments to pass to the <code>fn</code>.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        A partially applied function.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "unshift"></a>
+    <strong>unshift (list, value)</strong>
+    </dt>
+    <dd>
+    Inserts <code>value</code> at the front of the list, moving other elements upwards.
+ This is just a shortcut for <code>table.insert(list, 1, value)</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">list</span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+
+
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "values"></a>
+    <strong>values (tab)</strong>
+    </dt>
+    <dd>
+    Returns values from the given table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tab</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+
+
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        A list of values.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
