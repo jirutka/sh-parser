@@ -1,5 +1,5 @@
 ---------
--- Parser of POSIX shell.
+-- Parser of POSIX shell
 
 local lpeg    = require 'lpeg'
 local grammar = require 'sh-parser.grammar'

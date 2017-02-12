@@ -1,6 +1,8 @@
 ---------
--- General utility functions.
-
+-- General utility functions
+--
+-- **Note: This module is not part of the stable API!**
+----
 local fun = require 'sh-parser.fun_ext'
 
 local insert = table.insert

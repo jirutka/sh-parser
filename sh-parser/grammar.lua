@@ -1,5 +1,5 @@
 ---------
--- LPeg grammar for POSIX shell.
+-- LPeg grammar for POSIX shell
 
 local lpeg       = require 'lpeg'
 local fun        = require 'sh-parser.fun_ext'

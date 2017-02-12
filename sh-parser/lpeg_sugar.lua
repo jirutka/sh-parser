@@ -1,5 +1,5 @@
 ---------
--- Syntactic sugar for building grammar with LPeg.
+-- Syntactic sugar for building grammar with LPeg
 
 local lpeg  = require 'lpeg'
 

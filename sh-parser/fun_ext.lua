@@ -1,5 +1,4 @@
----------
--- This module provides luafun with some bug fixes.
+-- This module provides luafun with some bug fixes
 --
 -- XXX: Remove after https://github.com/rtsisyk/luafun/pull/34 is merged
 -- and released.
