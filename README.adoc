@@ -1,4 +1,10 @@
 = Parser of POSIX Shell Command Language
+:gh-name: jirutka/sh-parser
+:gh-branch: master
+
+ifdef::env-github[]
+image:https://travis-ci.org/{gh-name}.svg?branch={gh-branch}["Build Status", link="https://travis-ci.org/{gh-name}"]
+endif::env-github[]
 
 Status: in early phase of development
 
