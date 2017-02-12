@@ -1,7 +1,5 @@
 sudo: false
 env:
-  global:
-    secure: TBD  # GH_TOKEN
   matrix:
     - LUA_VERSION=luajit-2.0
     - LUA_VERSION=luajit-2.1
@@ -17,4 +15,5 @@ install:
 script:
   - script/test
 after_success:
+  - script/travis-decrypt
   - script/deploy-docs
