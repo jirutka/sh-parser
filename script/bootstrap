@@ -14,6 +14,18 @@ DEFAULT_LUA_VERSION='lua-5.3'
 HEREROCKS_URI='https://raw.githubusercontent.com/mpeterv/hererocks/0.13.0/hererocks.py'
 HEREROCKS_SHA256='02922304fd6917744ef2057848ca67b38129bb9b02342350424b8fd9f81c0cc5'
 
+install_rock() {
+	local name="$1"
+	local args="$name"
+
+	case "$name" in
+		*/*) args="--server=https://luarocks.org/manifests/${name%/*} ${name#*/}";;
+	esac
+
+	luarocks install $args
+}
+
+
 cd "$(dirname "$0")/.."
 . script/utils.sh
 
@@ -29,8 +41,8 @@ if [ ! -x "$VENV_DIR"/bin/luarocks ]; then
 fi
 
 einfo 'Installing lua modules'
-cat Rocksfile | sed '/^#.*/d;/^\s*$/d' | while read -r rockname; do
-	luarocks --mversion show "$rockname" >/dev/null 2>&1 \
-		|| luarocks install "$rockname" \
+cat Rocksfile | sed -En 's/^([^#]+).*/\1/p' | while read -r rockname; do
+	luarocks --mversion show "${rockname#*/}" >/dev/null 2>&1 \
+		|| install_rock "$rockname" \
 		|| die "Failed to install rock $rockname."
 done
