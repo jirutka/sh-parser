@@ -103,11 +103,9 @@ function M.build_grammar (func, defs, handlers, global_env)
       used_vars = {},
     }, {
       __index = setmetatable(env_index, {
-        __index = setmetatable(global_env, {
-          __index = function(_, name)
-            return env.on_get_variable(name, env)
-          end
-        })
+        __index = function(_, name)
+          return global_env[name] or env.on_get_variable(name, env)
+        end
       }),
       __newindex = function(tab, name, value)
         if lpeg_type(value) == 'pattern' then
