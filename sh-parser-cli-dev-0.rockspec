@@ -21,8 +21,8 @@ It parsers the given shell script and generates its AST in JSON.]],
 
 dependencies = {
   'lua >= 5.1',
-  'lua-cjson ~> 2.0',
   'optarg ~> 0.2',
+  'rapidjson ~> 0.5',
   'sh-parser',
 }
 

@@ -4,10 +4,11 @@ lpeg
 PegDebug
 
 # sh-parser-cli
-lua-cjson
+rapidjson
 optarg
 
 # dev and testing
+lua-cjson  # needed for deploying to LuaRocks
 inspect
 jirutka/ldoc  # https://github.com/stevedonovan/LDoc/pull/263
 luacheck
