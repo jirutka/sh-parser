@@ -4,10 +4,16 @@ local optarg = require 'optarg'
 local fun    = require 'sh-parser.fun_ext'
 local parser = require 'sh-parser.parser'
 
--- Allow either cjson, or th-LuaJSON.
-local ok, json = pcall(require, 'cjson')
-if not ok then
-  json = require 'json'
+local json
+for _, name in ipairs {'rapidjson', 'cjson', 'lunajson'} do
+  local ok, res = pcall(require, name)
+  if ok then
+    json = res
+    break
+  end
+end
+if not json then
+  error 'No json module found! Install rapidjson, cjson, or lunajson.'
 end
 
 local exit = os.exit
