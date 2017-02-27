@@ -30,6 +30,7 @@ Arguments:
   FILE  Path of script to parse or "-" to read from stdin.
 
 Options:
+  -p, --pretty          Print pretty formatted JSON.
   -t, --trace           Trace parser (needs pegdebug module).
   -V, --version         Show version information and exit
   -h, --help            Show this message and exit
@@ -68,6 +69,10 @@ elseif #args ~= 1 then
   exit(2)
 end
 
+if opts.pretty and json._NAME ~= 'rapidjson' then
+  printf_err('Warning: Option --pretty is supported only with rapidjson.')
+end
+
 local file
 if args[1] == '-' then
   file = io.stdin
@@ -92,4 +97,8 @@ if not ast then
   exit(1)
 end
 
-print(json.encode(ast))
+if opts.pretty and json._NAME == 'rapidjson' then
+  print(json.encode(ast, { pretty = true, sort_keys = true }))
+else
+  print(json.encode(ast))
+end
