@@ -445,9 +445,11 @@ local function grammar (_ENV)  --luacheck: no unused args
   CommandSubBackquote = BQUOTE * Cs( any_except(BQUOTE)^0 ) * BQUOTE
 
   ParameterExpansion  = DOLLAR * ( encl_param_exp + param_name )
-  encl_param_exp      = LBRACE * ( HASH * param_name
-                                 + param_name * ( C(PARAM_EXP_OP) * param_exp_word^-1 )^-1
-                                 ) * RBRACE
+  encl_param_exp      = LBRACE
+                        * ( C(HASH) + Cc(nil) )  -- prefix operator
+                        * param_name
+                        * ( C(PARAM_EXP_OP) * param_exp_word^-1 )^-1
+                        * RBRACE
   param_name          = C( SPECIAL_PARAM + DIGIT^1 ) + Name
   param_exp_word      = ( squoted_word
                         + dquoted_word
