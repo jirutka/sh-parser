@@ -21,6 +21,7 @@ local C    = lpeg.C
 local Carg = lpeg.Carg
 local Cb   = lpeg.Cb
 local Cc   = lpeg.Cc
+local Cf   = lpeg.Cf
 local Cg   = lpeg.Cg
 local Cp   = lpeg.Cp
 local Cs   = lpeg.Cs
@@ -398,9 +399,10 @@ local function grammar (_ENV)  --luacheck: no unused args
   io_number           = C( DIGIT^1 ) / tonumber
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
-  -- XXX: This is simplified a bit, e.g. `foo"bar"` is also valid heredoc delimiter.
-  heredoc_delim       = ( squoted_word + dquoted_str ) * Cc(false)
-                      + unquoted_word * Cc(true)
+  -- Note: If the delimiter contains any quoted string (even `eo'f'`, `eof""`,
+  -- `""eof`, ...), then the shell does not expand the content.
+  heredoc_delim       = unquoted_word * Cc(true)
+                      + Cf(( squoted_word + dquoted_str + unquoted_word )^1, op.concat) * Cc(false)
   dquoted_str         = DQUOTE * Cs( any_except(DQUOTE, expansion_begin)^0 ) * DQUOTE
 
   Assignment          = Name * EQUALS * Word^-1
