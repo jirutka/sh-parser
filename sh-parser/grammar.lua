@@ -451,10 +451,11 @@ local function grammar (_ENV)  --luacheck: no unused args
   encl_param_exp      = LBRACE
                         * ( C(HASH) + Cc(nil) )  -- prefix operator
                         * param_name
-                        * ( C(PARAM_EXP_OP) * param_exp_word^-1 )^-1
+                        * ( C(PARAM_EXP_OP) * ParamExpWord^-1 )^-1
                         * RBRACE
+  -- FIXME: Make it consistent, produce node even for special_param and digit.
   param_name          = C( SPECIAL_PARAM + DIGIT^1 ) + Name
-  param_exp_word      = ( squoted_word
+  ParamExpWord        = ( squoted_word
                         + dquoted_word
                         + expansion
                         + Cs( any_except(RBRACE, LF, expansion_begin)^1 )
