@@ -399,8 +399,9 @@ local function grammar (_ENV)  --luacheck: no unused args
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
   -- XXX: This is simplified a bit, e.g. `foo"bar"` is also valid heredoc delimiter.
-  heredoc_delim       = ( squoted_word + dquoted_word ) * Cc(false)
+  heredoc_delim       = ( squoted_word + dquoted_str ) * Cc(false)
                       + unquoted_word * Cc(true)
+  dquoted_str         = DQUOTE * Cs( any_except(DQUOTE, expansion_begin)^0 ) * DQUOTE
 
   Assignment          = Name * EQUALS * Word^-1
 
