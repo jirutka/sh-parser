@@ -23,6 +23,10 @@ local function minus_one (int)
   return int - 1
 end
 
+local function call_first_arg (func, ...)
+  return func(...)
+end
+
 
 local F = {}
 
@@ -36,8 +40,8 @@ function F.on_define_rule (name, pattern, env)
   local name_init = name:sub(1, 1)
 
   if name_init ~= '_' and is_upper(name_init) then
-    pattern = ( Cc(name) * Cp() * Ct(pattern) * (Cp() / minus_one)
-              * Carg(1) * Carg(2) ) / env.on_match_rule
+    pattern = ( Carg(1) * Cc(name) * Cp() * Ct(pattern) * (Cp() / minus_one) * Carg(2) )
+              / call_first_arg
   end
 
   env.grammar[name] = pattern
@@ -63,20 +67,6 @@ function F.on_grammar_built (env)
       error(('Undefined non-terminal "%s" referenced %d times'):format(name, cnt))
     end
   end
-end
-
---- Handler called during parsing when an upper-case rule is matched (when
--- using default `on_define_rule`).
---
--- @tparam string name Name of the matched rule.
--- @tparam int start_pos
--- @tparam table captures A table of captures produced by the rule.
--- @tparam int end_pos
--- @tparam string subject The entire parsed text.
--- @tparam table state
--- @treturn table
-function F.on_match_rule (name, start_pos, captures, end_pos, subject, state)  --luacheck: no unused args
-  return { tag = name, loc = { start_pos, end_pos }, children = captures }
 end
 
 

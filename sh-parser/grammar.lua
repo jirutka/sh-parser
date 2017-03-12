@@ -170,14 +170,14 @@ end
 --
 --     capture_and_or([func], 1, {{a}, 2, "&&", {b}, 7, "&&", {c}, 12, "||",
 --                                {d}, 17, "||", {e}, 22, "&&", {f}, 27}) -> Z
---     on_match_rule("AndList", 1, {a, b, c}, 12) -> X
---     on_match_rule("OrList", 1, {X, d, e}, 22) -> Y
---     on_match_rule("AndList", 1, {Y, f}, 27) -> Z
+--     create_node("AndList", 1, {a, b, c}, 12) -> X
+--     create_node("OrList", 1, {X, d, e}, 22) -> Y
+--     create_node("AndList", 1, {Y, f}, 27) -> Z
 --
 --      Z        Y       X
 --     (AndList (OrList (AndList a b c) d e) f)
 --
--- @tparam function on_match_rule Function that creates AST nodes from captures.
+-- @tparam function create_node The function to be called to create AST nodes.
 -- @tparam int start_pos Index of the first character of the captured substring.
 -- @tparam table captures Table with shape `{ table,int,string, table,int,string, ... }`.
 --   Element *i* is table of children nodes (pipeline and optional comments),
@@ -185,8 +185,8 @@ end
 --   operator ("&&", or "||").
 -- @tparam string subject The entire subject (i.e. input text).
 -- @tparam table state
--- @return Result of the last call of `on_match_rule`.
-local function capture_and_or (on_match_rule, start_pos, captures, subject, state)
+-- @return Result of the last call of `create_node`.
+local function capture_and_or (create_node, start_pos, captures, subject)
   local node_name = { ['&&'] = 'AndList', ['||'] = 'OrList' }
   local node, last_op
   local children = {}
@@ -198,7 +198,7 @@ local function capture_and_or (on_match_rule, start_pos, captures, subject, stat
 
     if last_op and last_op ~= next_op then
       local name = assert(node_name[last_op], 'invalid operator '..last_op)
-      node = on_match_rule(name, start_pos, children, end_pos, subject, state)
+      node = create_node(name, start_pos, children, end_pos, subject)
       children = { node }
     end
     last_op = next_op
@@ -280,9 +280,12 @@ end
 local function grammar (_ENV)  --luacheck: no unused args
   --luacheck: allow defined, ignore 113 131
 
+  local _create_node    = Carg(1)  -- callback function for creating AST nodes
+  local _subject        = Carg(2)  -- the input being parsed
+  local _heredocs_stack = Carg(3)  -- support stack used for skipping heredocs
+
   local _  = ( WSP + ESC * LF )^0  -- optional whitespace(s)
   local __ = ( (ESC * LF)^0 * WSP )^1  -- at least one whitespace
-  local heredocs_index = Carg(3)  -- state table used for skipping heredocs
 
   Program             = linebreak * ( complete_commands * linebreak )^-1 * EOF
   complete_commands   = complete_command * ( newline_list * complete_command )^0
@@ -301,10 +304,10 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   and_or              = Cg( Cg(Cp(), 'and_or_cp') * Cg(pipeline, 'pipeline') * ( and_or_list
                                                                                + Cb'pipeline' ) )
-  and_or_list         = Cb'and_or_cp' * Ct(
+  and_or_list         = _create_node * Cb'and_or_cp' * Ct(
                           Ct( Cb'pipeline' ) * Cp()
                           * ( _ * and_or_op * Ct( linebreak * pipeline ) * Cp() )^1
-                        ) * Carg(1) * Carg(2) / par(capture_and_or, on_match_rule)
+                        ) * _subject / capture_and_or
   and_or_op           = C( AND_IF_OP + OR_IF_OP )
 
   compound_list       = linebreak
@@ -392,9 +395,9 @@ local function grammar (_ENV)  --luacheck: no unused args
                             + RedirectHereDoc )
   RedirectFile        = ( io_number + Cc(nil) ) * io_file_op * _ * Word
   RedirectHereDoc     = ( io_number + Cc(nil) )
-                        * ( DLESSDASH_OP * _ * Cmt(heredoc_delim * heredocs_index,
+                        * ( DLESSDASH_OP * _ * Cmt(heredoc_delim * _heredocs_stack,
                                                    par(capture_heredoc, true))
-                          + DLESS_OP * _ * Cmt(heredoc_delim * heredocs_index,
+                          + DLESS_OP * _ * Cmt(heredoc_delim * _heredocs_stack,
                                                par(capture_heredoc, false)) )
   io_number           = C( DIGIT^1 ) / tonumber
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
@@ -422,10 +425,10 @@ local function grammar (_ENV)  --luacheck: no unused args
   unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, OPERATOR_CHARS, expansion_begin)^1 )
 
   -- The first Cmt is used to force evaluation of the Comment rule (and so
-  -- calling on_match_rule) without producing any capture; to discard comments
+  -- calling create_node) without producing any capture; to discard comments
   -- from AST.
   newline_list        = ( _ * Cmt(Comment, always(true))^-1 * LF
-                        * Cmt(heredocs_index, skip_heredoc)
+                        * Cmt(_heredocs_stack, skip_heredoc)
                         )^1 * _
   linebreak           = _ * newline_list^-1
 
@@ -480,15 +483,22 @@ local M = {}
 
 --- Builds LPeg grammar table.
 --
--- The grammar expects 3 arguments to be passed into `match` function:
--- the subject (text being parsed) and two empty tables. The first table is
--- always passed into `on_match_rule` handler and may be used to store state
--- information during parsing. The second table is used internally for parsing
--- here-documents.
+-- The grammar expects 3 extra arguments to be passed into the `match` function:
+--
+-- 1. create_node handler - A function that is called every time the LPeg match
+--    a grammar rule for which an AST node should be created. It is called with
+--    rule name, start position, a table of captures, end position, subject,
+--    and should return the AST node.
+-- 2. subject - the string being parsed,
+-- 3. an empty table - a table used to store an internal state.
 --
 -- @usage
+--   local function create_ast (name, start_pos, captures, end_pos, subject)
+--     return { type = name, children = captures }
+--   end
+--
 --   local parser = lpeg.P(grammar.build())
---   parser:match(subject, 1, subject, {}, {})
+--   parser:match(subject, 1, create_ast, subject, {})
 --
 -- @function build
 -- @tparam ?{[string]=function,...} handlers Table of custom handlers.

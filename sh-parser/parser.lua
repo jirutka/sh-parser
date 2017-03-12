@@ -14,6 +14,11 @@ local function inject_tracing (grammar)  --luacheck: ignore 431
   return pegdebug.trace(grammar)
 end
 
+-- XXX: temporary
+local function create_node (name, start_pos, captures, end_pos, subject) --luacheck: no unused
+  return { tag = name, children = captures }
+end
+
 
 local M = {}
 
@@ -30,10 +35,7 @@ function M.parse (input, opts)
     and lpeg.P(inject_tracing(grammar.build()))
     or lpeg.P(grammar.build())
 
-  -- The 3rd and 4th argument is passed to create_ast_node handler.
-  -- The 5th argument is a table used for storing indexes of heredoc end.
-  -- These arguments are accessible using lpeg.Carg.
-  local ast = parser:match(input, 1, input, {}, {})
+  local ast = parser:match(input, 1, create_node, input, {})
   if not ast then
     return nil
   end
