@@ -501,7 +501,6 @@ local M = {}
 --   parser:match(subject, 1, create_ast, subject, {})
 --
 -- @function build
--- @tparam ?{[string]=function,...} handlers Table of custom handlers.
 -- @treturn table LPeg grammar table.
 M.build = par(build_grammar, grammar, terminals)
 
