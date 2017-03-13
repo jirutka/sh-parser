@@ -6,7 +6,6 @@ local fun        = require 'sh-parser.fun_ext'
 local lpeg_sugar = require 'sh-parser.lpeg_sugar'
 local utils      = require 'sh-parser.utils'
 
-local always        = utils.always
 local build_grammar = lpeg_sugar.build_grammar
 local chain         = fun.chain
 local extend        = utils.extend
@@ -424,10 +423,9 @@ local function grammar (_ENV)  --luacheck: no unused args
                                  )^0 * DQUOTE
   unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, OPERATOR_CHARS, expansion_begin)^1 )
 
-  -- The first Cmt is used to force evaluation of the Comment rule (and so
-  -- calling create_node) without producing any capture; to discard comments
-  -- from AST.
-  newline_list        = ( _ * Cmt(Comment, always(true))^-1 * LF
+  -- Cg is used here to force evaluation of the Comment rule (and so calling
+  -- create_node) without producing any capture; to discard comments from AST.
+  newline_list        = ( _ * Cg(Comment, '__comment')^-1 * LF
                         * Cmt(_heredocs_stack, skip_heredoc)
                         )^1 * _
   linebreak           = _ * newline_list^-1
