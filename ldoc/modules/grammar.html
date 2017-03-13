@@ -58,7 +58,7 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#build">build (handlers)</a></td>
+	<td class="name" nowrap><a href="#build">build ()</a></td>
 	<td class="summary">Builds LPeg grammar table.</td>
 	</tr>
 </table>
@@ -72,25 +72,26 @@
     <dl class="function">
     <dt>
     <a name = "build"></a>
-    <strong>build (handlers)</strong>
+    <strong>build ()</strong>
     </dt>
     <dd>
-    Builds LPeg grammar table. </p>
 
-<p> The grammar expects 3 arguments to be passed into <code>match</code> function:
- the subject (text being parsed) and two empty tables. The first table is
- always passed into <code>on_match_rule</code> handler and may be used to store state
- information during parsing. The second table is used internally for parsing
- here-documents.
+<p>Builds LPeg grammar table. </p>
+
+<p> The grammar expects 3 extra arguments to be passed into the <code>match</code> function:</p>
+
+<ol>
+    <li>create_node handler - A function that is called every time the LPeg match
+    a grammar rule for which an AST node should be created. It is called with
+    rule name, start position, a table of captures, end position, subject,
+    and should return the AST node.</li>
+    <li>subject - the string being parsed,</li>
+    <li>an empty table - a table used to store an internal state.</li>
+</ol>
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">handlers</span>
-            <span class="types">optional <a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">{[string]=function,...}</a></span>
-         Table of custom handlers.
-        </li>
-    </ul>
+
+
 
     <h3>Returns:</h3>
     <ol>
@@ -103,8 +104,12 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> parser = lpeg.P(grammar.build())
-parser:match(subject, <span class="number">1</span>, subject, {}, {})</pre>
+        <pre class="example"><span class="keyword">local</span> <span class="keyword">function</span> create_ast (name, start_pos, captures, end_pos, subject)
+  <span class="keyword">return</span> { <span class="global">type</span> = name, children = captures }
+<span class="keyword">end</span>
+
+<span class="keyword">local</span> parser = lpeg.P(grammar.build())
+parser:match(subject, <span class="number">1</span>, create_ast, subject, {})</pre>
     </ul>
 
 </dd>

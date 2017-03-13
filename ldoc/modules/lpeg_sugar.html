@@ -71,11 +71,6 @@
 	<td class="name" nowrap><a href="#F.on_grammar_built">F.on_grammar_built (env)</a></td>
 	<td class="summary">Handler called right before the resulting grammar is returned.</td>
 	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#F.on_match_rule">F.on_match_rule (name, start_pos, captures, end_pos, subject, state)</a></td>
-	<td class="summary">Handler called during parsing when an upper-case rule is matched (when
- using default <a href="../modules/lpeg_sugar.html#F.on_define_rule">on_define_rule</a>).</td>
-	</tr>
 </table>
 
 <br/>
@@ -171,62 +166,6 @@
         </li>
     </ul>
 
-
-
-
-
-</dd>
-    <dt>
-    <a name = "F.on_match_rule"></a>
-    <strong>F.on_match_rule (name, start_pos, captures, end_pos, subject, state)</strong>
-    </dt>
-    <dd>
-    Handler called during parsing when an upper-case rule is matched (when
- using default <a href="../modules/lpeg_sugar.html#F.on_define_rule">on_define_rule</a>).
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">name</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
-         Name of the matched rule.
-        </li>
-        <li><span class="parameter">start_pos</span>
-            <span class="types"><span class="type">int</span></span>
-
-
-
-        </li>
-        <li><span class="parameter">captures</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
-         A table of captures produced by the rule.
-        </li>
-        <li><span class="parameter">end_pos</span>
-            <span class="types"><span class="type">int</span></span>
-
-
-
-        </li>
-        <li><span class="parameter">subject</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
-         The entire parsed text.
-        </li>
-        <li><span class="parameter">state</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
-
-
-
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
-
-
-
-    </ol>
 
 
 
