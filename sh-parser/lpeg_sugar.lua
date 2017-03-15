@@ -19,12 +19,8 @@ local Ct   = lpeg.Ct
 local V    = lpeg.V
 
 
-local function minus_one (int)
-  return int - 1
-end
-
-local function call_first_arg (func, ...)
-  return func(...)
+local function create_node (func, name, start_pos, captures, end_pos, subject)
+  return func(name, captures, start_pos, end_pos - 1, subject)
 end
 
 
@@ -40,8 +36,8 @@ function F.on_define_rule (name, pattern, env)
   local name_init = name:sub(1, 1)
 
   if name_init ~= '_' and is_upper(name_init) then
-    pattern = ( Carg(1) * Cc(name) * Cp() * Ct(pattern) * (Cp() / minus_one) * Carg(2) )
-              / call_first_arg
+    pattern = ( Carg(1) * Cc(name) * Cp() * Ct(pattern) * Cp() * Carg(2) )
+              / create_node
   end
 
   env.grammar[name] = pattern

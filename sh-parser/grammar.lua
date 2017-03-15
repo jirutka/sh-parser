@@ -197,7 +197,7 @@ local function capture_and_or (create_node, start_pos, captures, subject)
 
     if last_op and last_op ~= next_op then
       local name = assert(node_name[last_op], 'invalid operator '..last_op)
-      node = create_node(name, start_pos, children, end_pos, subject)
+      node = create_node(name, children, start_pos, end_pos, subject)
       children = { node }
     end
     last_op = next_op
@@ -485,13 +485,13 @@ local M = {}
 --
 -- 1. create_node handler - A function that is called every time the LPeg match
 --    a grammar rule for which an AST node should be created. It is called with
---    rule name, start position, a table of captures, end position, subject,
+--    rule name, a table of captures, start position, end position, subject,
 --    and should return the AST node.
 -- 2. subject - the string being parsed,
 -- 3. an empty table - a table used to store an internal state.
 --
 -- @usage
---   local function create_ast (name, start_pos, captures, end_pos, subject)
+--   local function create_ast (name, captures, start_pos, end_pos, subject)
 --     return { type = name, children = captures }
 --   end
 --

@@ -15,7 +15,7 @@ local function inject_tracing (grammar)  --luacheck: ignore 431
 end
 
 -- XXX: temporary
-local function create_node (name, start_pos, captures, end_pos, subject) --luacheck: no unused
+local function create_node (name, captures, start_pos, end_pos, subject) --luacheck: no unused
   return { tag = name, children = captures }
 end
 
