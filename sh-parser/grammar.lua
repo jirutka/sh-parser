@@ -271,7 +271,7 @@ local function capture_heredoc (strip_tabs, subject, pos, delimiter, expand, her
   content = strip_tabs and content:gsub('\n\t+', '\n') or content
   content = content:sub(2)  -- strip leading newline
 
-  return true, content
+  return true, delimiter, content
 end
 
 
@@ -394,10 +394,10 @@ local function grammar (_ENV)  --luacheck: no unused args
                             + RedirectHereDoc )
   RedirectFile        = ( io_number + Cc(nil) ) * io_file_op * _ * Word
   RedirectHereDoc     = ( io_number + Cc(nil) )
-                        * ( DLESSDASH_OP * _ * Cmt(heredoc_delim * _heredocs_stack,
-                                                   par(capture_heredoc, true))
-                          + DLESS_OP * _ * Cmt(heredoc_delim * _heredocs_stack,
-                                               par(capture_heredoc, false)) )
+                        * ( C(DLESSDASH_OP) * _ * Cmt(heredoc_delim * _heredocs_stack,
+                                                      par(capture_heredoc, true))
+                          + C(DLESS_OP) * _ * Cmt(heredoc_delim * _heredocs_stack,
+                                                  par(capture_heredoc, false)) )
   io_number           = C( DIGIT^1 ) / tonumber
   io_file_op          = C( GREATAND_OP + DGREAT_OP + CLOBBER_OP + LESSAND_OP
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
