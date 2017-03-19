@@ -66,6 +66,11 @@ function M.extend (dest, src)
   return dest
 end
 
+--- Returns true if the given argument is a string.
+function M.is_string (value)
+  return type(value) == 'string'
+end
+
 --- Returns true if the given str is all upper case.
 function M.is_upper (str)
   return str == str:upper()
