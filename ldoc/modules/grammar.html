@@ -85,7 +85,7 @@
  patterns when not preceded by the escape character.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#capture_and_or">capture_and_or (create_node, start_pos, captures, subject, state)</a></td>
+	<td class="name" nowrap><a href="#capture_and_or">capture_and_or (create_node, start_pos, captures, subject)</a></td>
 	<td class="summary">Transforms captures from <em>and_or_list</em> into left-associative tree of n-ary
  nodes <em>AndList</em> and <em>OrList</em>.</td>
 	</tr>
@@ -280,7 +280,7 @@ parser:match(subject, <span class="number">1</span>, create_ast, subject, {})</p
 </dd>
     <dt>
     <a name = "capture_and_or"></a>
-    <strong>capture_and_or (create_node, start_pos, captures, subject, state)</strong>
+    <strong>capture_and_or (create_node, start_pos, captures, subject)</strong>
     </dt>
     <dd>
     Transforms captures from <em>and_or_list</em> into left-associative tree of n-ary
@@ -310,12 +310,6 @@ parser:match(subject, <span class="number">1</span>, create_ast, subject, {})</p
         <li><span class="parameter">subject</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The entire subject (i.e. input text).
-        </li>
-        <li><span class="parameter">state</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
-
-
-
         </li>
     </ul>
 
