@@ -33,6 +33,8 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
+<li><a href="#Local_Functions">Local Functions</a></li>
 </ul>
 
 
@@ -62,6 +64,55 @@
 	<td class="summary">Builds LPeg grammar table.</td>
 	</tr>
 </table>
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#HereDocInfo">HereDocInfo</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+</table>
+<h2><a href="#Local_Functions">Local Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#escaped">escaped (patt)</a></td>
+	<td class="summary">Creates a pattern that captures escaped <code>patt</code>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#any_except">any_except (...)</a></td>
+	<td class="summary">Creates a pattern that captures any character, except the specified
+ patterns when not preceded by the escape character.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#capture_and_or">capture_and_or (create_node, start_pos, captures, subject, state)</a></td>
+	<td class="summary">Transforms captures from <em>and_or_list</em> into left-associative tree of n-ary
+ nodes <em>AndList</em> and <em>OrList</em>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#find_heredoc">find_heredoc (_, pos, heredocs)</a></td>
+	<td class="summary">Predicate function that matches start of the here-document's content and
+ returns the corresponding HereDocInfo table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#capture_heredoc">capture_heredoc (strip_tabs, subject, pos, delimiter, quoted, heredocs)</a></td>
+	<td class="summary">Captures here-document redirection.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#inside_heredoc">inside_heredoc (_, pos, heredoc)</a></td>
+	<td class="summary">Predicate function that matches when the <code>pos</code> is inside the here-document
+ specified by the <code>heredoc</code>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#capture_nonexp_heredoc">capture_nonexp_heredoc (subject, pos, heredoc)</a></td>
+	<td class="summary">Captures content of the specified quoted or empty here-document.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#inject_heredoc">inject_heredoc (pos, content_node, heredocs)</a></td>
+	<td class="summary">Inject the given <em>HereDocContent</em> AST node into the "content placeholder"
+ that has been passed into the <em>RedirectHereDoc</em> node.</td>
+	</tr>
+</table>
 
 <br/>
 <br/>
@@ -83,7 +134,7 @@
 <ol>
     <li>create_node handler - A function that is called every time the LPeg match
     a grammar rule for which an AST node should be created. It is called with
-    rule name, start position, a table of captures, end position, subject,
+    rule name, a table of captures, start position, end position, subject,
     and should return the AST node.</li>
     <li>subject - the string being parsed,</li>
     <li>an empty table - a table used to store an internal state.</li>
@@ -104,13 +155,447 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> <span class="keyword">function</span> create_ast (name, start_pos, captures, end_pos, subject)
+        <pre class="example"><span class="keyword">local</span> <span class="keyword">function</span> create_ast (name, captures, start_pos, end_pos, subject)
   <span class="keyword">return</span> { <span class="global">type</span> = name, children = captures }
 <span class="keyword">end</span>
 
 <span class="keyword">local</span> parser = lpeg.P(grammar.build())
 parser:match(subject, <span class="number">1</span>, create_ast, subject, {})</pre>
     </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "HereDocInfo"></a>
+    <strong>HereDocInfo</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">id</span>
+            <span class="types"><span class="type">int</span></span>
+         ID of this heredoc.
+        </li>
+        <li><span class="parameter">cont_start</span>
+            <span class="types"><span class="type">int</span></span>
+         Position of the first character of the heredoc's content.
+        </li>
+        <li><span class="parameter">cont_end</span>
+            <span class="types"><span class="type">int</span></span>
+         Position of trailing newline of the heredoc's content. It's <code>cont_start - 1</code> if there's no content (not even blank line)!
+        </li>
+        <li><span class="parameter">delim_end</span>
+            <span class="types"><span class="type">int</span></span>
+         Position of a newline after the closing delimiter.
+        </li>
+        <li><span class="parameter">quoted</span>
+            <span class="types"><span class="type">bool</span></span>
+         false if word expansions should be parsed, true otherwise.
+        </li>
+        <li><span class="parameter">content</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         An empty table that will be mutated into <em>HereDocContent</em>.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Local_Functions"></a>Local Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "escaped"></a>
+    <strong>escaped (patt)</strong>
+    </dt>
+    <dd>
+    Creates a pattern that captures escaped <code>patt</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">patt</span>
+            <span class="types"><span class="type">lpeg.Pattern</span></span>
+         The pattern to escape.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">lpeg.Pattern</span></span>
+
+
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "any_except"></a>
+    <strong>any_except (...)</strong>
+    </dt>
+    <dd>
+    Creates a pattern that captures any character, except the specified
+ patterns when not preceded by the escape character.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">...</span>
+            <span class="types"><span class="type">lpeg.Pattern</span></span>
+         The patterns to <em>not</em> capture.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">lpeg.Pattern</span></span>
+
+
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">any_except(P<span class="string">' '</span>) <span class="comment">--&gt; escaped(P' ') + 1 - P' '</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "capture_and_or"></a>
+    <strong>capture_and_or (create_node, start_pos, captures, subject, state)</strong>
+    </dt>
+    <dd>
+    Transforms captures from <em>and_or_list</em> into left-associative tree of n-ary
+ nodes <em>AndList</em> and <em>OrList</em>. </p>
+
+<p> This function is basically a workaround to create AST for left-associative
+ operators with the same precedence - <code>&amp;&amp;</code> and <code>||</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">create_node</span>
+            <span class="types"><span class="type">func</span></span>
+         The function to be called to create AST nodes.
+        </li>
+        <li><span class="parameter">start_pos</span>
+            <span class="types"><span class="type">int</span></span>
+         Index of the first character of the captured substring.
+        </li>
+        <li><span class="parameter">captures</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         Table with shape <code>{table,int,string, table,int,string, ...}</code>.
+   Element <em>i</em> is table of children nodes (pipeline and optional comments),
+   <em>i + 1</em> is position of the end of the last child node (int), <em>i + 2</em> is
+   operator ("&amp;&amp;", or "||").
+        </li>
+        <li><span class="parameter">subject</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The entire subject (i.e. input text).
+        </li>
+        <li><span class="parameter">state</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+
+
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Result of the last call of <code>create_node</code>.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">subject = <span class="string">"a &amp;&amp; b &amp;&amp; c || d || e &amp;&amp; f"</span>
+captures = { {a}, <span class="number">2</span>, <span class="string">"&amp;&amp;"</span>, {b}, <span class="number">7</span>, <span class="string">"&amp;&amp;"</span>, {c}, <span class="number">12</span>, <span class="string">"||"</span>,
+             {d}, <span class="number">17</span>, <span class="string">"||"</span>, {e}, <span class="number">22</span>, <span class="string">"&amp;&amp;"</span>, {f}, <span class="number">27</span> }
+
+capture_and_or(create_node, <span class="number">1</span>, captures, subject) <span class="comment">--&gt; Z
+</span>  ~&gt; create_node(<span class="string">"AndList"</span>, <span class="number">1</span>, {a, b, c}, <span class="number">12</span>) <span class="comment">--&gt; X
+</span>  ~&gt; create_node(<span class="string">"OrList"</span>, <span class="number">1</span>, {X, d, e}, <span class="number">22</span>) <span class="comment">--&gt; Y
+</span>  ~&gt; create_node(<span class="string">"AndList"</span>, <span class="number">1</span>, {Y, f}, <span class="number">27</span>) <span class="comment">--&gt; Z
+</span>
+ Z        Y       X
+(AndList (OrList (AndList a b c) d e) f)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "find_heredoc"></a>
+    <strong>find_heredoc (_, pos, heredocs)</strong>
+    </dt>
+    <dd>
+    Predicate function that matches start of the here-document's content and
+ returns the corresponding HereDocInfo table. </p>
+
+<p> This match-time capture function is called by the parser each time when
+ a new line is consumed (see the rule *newline_list*).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">_</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The entire subject (unused).
+        </li>
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">int</span></span>
+         The current position.
+        </li>
+        <li><span class="parameter">heredocs</span>
+            <span class="types"><a class="type" href="../modules/grammar.html#HereDocInfo">{HereDocInfo,...}</a></span>
+         (see <a href="../modules/grammar.html#capture_heredoc">capture_heredoc</a>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">false</span></span>
+        (no match)
+    </ol>
+     <h3>Or</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">true</span></span>
+        (match)</li>
+        <li>
+           <span class="types"><a class="type" href="../modules/grammar.html#HereDocInfo">HereDocInfo</a></span>
+
+
+</li>
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">Cg(Cmt(_heredocs_stack, find_heredoc), <span class="string">'heredoc'</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "capture_heredoc"></a>
+    <strong>capture_heredoc (strip_tabs, subject, pos, delimiter, quoted, heredocs)</strong>
+    </dt>
+    <dd>
+    Captures here-document redirection.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">strip_tabs</span>
+            <span class="types"><span class="type">bool</span></span>
+         Whether to strip leading tabs (for <code>&lt;&lt;-</code>).
+        </li>
+        <li><span class="parameter">subject</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The entire subject (i.e. input text).
+        </li>
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">int</span></span>
+         The current position.
+        </li>
+        <li><span class="parameter">delimiter</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The captured delimiter string.
+        </li>
+        <li><span class="parameter">quoted</span>
+            <span class="types"><span class="type">bool</span></span>
+         Is any character in the delimiter word quoted?
+        </li>
+        <li><span class="parameter">heredocs</span>
+            <span class="types"><a class="type" href="../modules/grammar.html#HereDocInfo">{HereDocInfo,...}</a></span>
+         The list of parsed here-document
+   redirections into which a new HereDocInfo will be added.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">true</span></span>
+        Match and do not consume any input.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        The delimiter word.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        A "placeholder" for future content.</li>
+        <li>
+           <span class="types"><span class="type">int</span></span>
+        ID of the here-document.</li>
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if here-document is not terminated.
+
+
+
+</dd>
+    <dt>
+    <a name = "inside_heredoc"></a>
+    <strong>inside_heredoc (_, pos, heredoc)</strong>
+    </dt>
+    <dd>
+    Predicate function that matches when the <code>pos</code> is inside the here-document
+ specified by the <code>heredoc</code>.  It does not consume any input.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">_</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The entire subject (unused).
+        </li>
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">int</span></span>
+         The current position.
+        </li>
+        <li><span class="parameter">heredoc</span>
+            <span class="types"><a class="type" href="../modules/grammar.html#HereDocInfo">HereDocInfo</a></span>
+         (see <a href="../modules/grammar.html#capture_heredoc">capture_heredoc</a>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        Whether the <code>pos</code> is inside the here-document.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">Cg(Cmt(_heredocs_stack, find_heredoc), <span class="string">'heredoc'</span>)
+Cmt(Cb<span class="string">'heredoc'</span>, inside_heredoc)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "capture_nonexp_heredoc"></a>
+    <strong>capture_nonexp_heredoc (subject, pos, heredoc)</strong>
+    </dt>
+    <dd>
+    Captures content of the specified quoted or empty here-document. </p>
+
+<p> This function is used as a match-time capture to match and capture content
+ of a here-document with quoted delimiter (which means that the content is
+ not expanded).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">subject</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The entire subject (i.e. input text).
+        </li>
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">int</span></span>
+         The current position.
+        </li>
+        <li><span class="parameter">heredoc</span>
+            <span class="types"><a class="type" href="../modules/grammar.html#HereDocInfo">HereDocInfo</a></span>
+         (see <a href="../modules/grammar.html#capture_heredoc">capture_heredoc</a>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true to match without consuming any input,
+   false to not match.
+    </ol>
+     <h3>Or</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">int</span></span>
+        A new position (at the end of the content).</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        The here-document's content.</li>
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">Cg(Cmt(_heredocs_stack, find_heredoc), <span class="string">'heredoc'</span>)
+Cmt(Cb<span class="string">'heredoc'</span>, capture_nonexp_heredoc)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "inject_heredoc"></a>
+    <strong>inject_heredoc (pos, content_node, heredocs)</strong>
+    </dt>
+    <dd>
+    Inject the given <em>HereDocContent</em> AST node into the "content placeholder"
+ that has been passed into the <em>RedirectHereDoc</em> node. </p>
+
+<p> The problem here is that here-document's content may not immediatelly follow
+ the redirection (e.g. <code>&lt;&lt;EOF</code>); it begins after the next <em>newline</em> and there
+ may be anything between the redirection and the newline (e.g.
+ <code>cat &lt;&lt;EOF; echo &quot;allons-y!&quot;\nContent starts here...</code>).</p>
+
+<p> The <em>RedirectHereDoc</em> rule produces capture with an empty table as a
+ "content placeholder". This "placeholder" is created in the
+ <a href="../modules/grammar.html#capture_heredoc">capture_heredoc</a> function and its reference is stored in the <a href="../modules/grammar.html#HereDocInfo">HereDocInfo</a>
+ table. This function is called after the <em>HereDocContent</em> is parsed
+ and produced. It gets the <em>HereDocContent</em> (content_node), finds the
+ <a href="../modules/grammar.html#HereDocInfo">HereDocInfo</a> and copies all keys and metatable from the given
+ <code>content_node</code> into the "content placeholder" from the <a href="../modules/grammar.html#HereDocInfo">HereDocInfo</a>.</p>
+
+<p> Note that this is an ugly hack that abuses mutability of Lua tables.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">int</span></span>
+         The current position.
+        </li>
+        <li><span class="parameter">content_node</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         The <em>HereDocContent</em> AST node.
+        </li>
+        <li><span class="parameter">heredocs</span>
+            <span class="types"><a class="type" href="../modules/grammar.html#HereDocInfo">{HereDocInfo,...}</a></span>
+         (see <a href="../modules/grammar.html#capture_heredoc">capture_heredoc</a>)
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    Error if heredoc is not found (should not happen).
+
+
 
 </dd>
 </dl>

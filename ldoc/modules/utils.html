@@ -33,6 +33,7 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Functions">Functions</a></li>
+<li><a href="#Local_Functions">Local Functions</a></li>
 </ul>
 
 
@@ -79,6 +80,13 @@
 	<tr>
 	<td class="name" nowrap><a href="#values">values (tab)</a></td>
 	<td class="summary">Returns values from the given table.</td>
+	</tr>
+</table>
+<h2><a href="#Local_Functions">Local Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#call">call (func, args, ...)</a></td>
+	<td class="summary">Calls the function <code>func</code> with the given arguments.</td>
 	</tr>
 </table>
 
@@ -260,6 +268,49 @@
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         A list of values.
     </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Local_Functions"></a>Local Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "call"></a>
+    <strong>call (func, args, ...)</strong>
+    </dt>
+    <dd>
+    Calls the function <code>func</code> with the given arguments.  This is equivalent to:</p>
+
+<pre><code> func(unpack(args), ...)
+</code></pre>
+
+<p> but in a form that can be highly optimized by LuaJIT (~20x faster) when
+ called with less than 4 arguments in the <code>args</code> table. If <code>#args &gt; 3</code>, then
+ it fallbacks to <a href="https://www.lua.org/manual/5.1/manual.html#pdf-unpack">unpack</a> (that is not JIT-compiled in LuaJIT 2.0).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">func</span>
+
+
+
+        </li>
+        <li><span class="parameter">args</span>
+
+
+
+        </li>
+        <li><span class="parameter">...</span>
+
+
+
+        </li>
+    </ul>
+
 
 
 
