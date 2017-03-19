@@ -33,6 +33,8 @@ Options:
   -c, --comments  Include comments.
   -l, --loc       Include nodes' location as start and end absolute position
                   in the source script.
+  -m, --loc2      Include nodes' location as start and end row, column and
+                  absolute position in the source script.
   -p, --pretty    Print pretty formatted JSON.
   -t, --trace     Trace parser (needs pegdebug module).
   -s, --source    Include raw source in all nodes except the root node.
