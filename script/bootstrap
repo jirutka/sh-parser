@@ -11,8 +11,8 @@
 set -eu
 
 DEFAULT_LUA_VERSION='lua-5.3'
-HEREROCKS_URI='https://raw.githubusercontent.com/mpeterv/hererocks/0.13.0/hererocks.py'
-HEREROCKS_SHA256='02922304fd6917744ef2057848ca67b38129bb9b02342350424b8fd9f81c0cc5'
+HEREROCKS_URI='https://raw.githubusercontent.com/mpeterv/hererocks/0.14.0/hererocks.py'
+HEREROCKS_SHA256='4d667c12411d405eb3a64392c7fe89db0a557aca60e8b9e96d11030ecf3ce10f'
 
 install_rock() {
 	local name="$1"
