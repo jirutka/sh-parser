@@ -38,12 +38,12 @@
 
 <h2>Modules</h2>
 <ul class="nowrap">
-  <li><a href="../modules/ast.name_captures.html">ast.name_captures</a></li>
+  <li><strong>ast.name_captures</strong></li>
   <li><a href="../modules/ast.simple.html">ast.simple</a></li>
   <li><a href="../modules/grammar.html">grammar</a></li>
   <li><a href="../modules/location_resolver.html">location_resolver</a></li>
   <li><a href="../modules/lpeg_sugar.html">lpeg_sugar</a></li>
-  <li><strong>parser</strong></li>
+  <li><a href="../modules/parser.html">parser</a></li>
   <li><a href="../modules/utils.html">utils</a></li>
 </ul>
 
@@ -51,8 +51,8 @@
 
 <div id="content">
 
-<h1>Module <code>parser</code></h1>
-<p>Parser of POSIX shell</p>
+<h1>Module <code>ast.name_captures</code></h1>
+<p>Captures converter</p>
 <p>
 
 </p>
@@ -61,8 +61,9 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#parse">parse (input, opts)</a></td>
-	<td class="summary">Parses the given shell script into AST.</td>
+	<td class="name" nowrap><a href="#__call">__call (ttype, captures)</a></td>
+	<td class="summary">Converts the given list of positional captures from the specified grammar
+ rule into a map of named captures.</td>
 	</tr>
 </table>
 
@@ -74,30 +75,31 @@
 
     <dl class="function">
     <dt>
-    <a name = "parse"></a>
-    <strong>parse (input, opts)</strong>
+    <a name = "__call"></a>
+    <strong>__call (ttype, captures)</strong>
     </dt>
     <dd>
-    Parses the given shell script into AST.
+    Converts the given list of positional captures from the specified grammar
+ rule into a map of named captures.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">input</span>
+        <li><span class="parameter">ttype</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
-         The script to parse.
+         Type of the grammar rule / AST node.
         </li>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
-         A map of options.
+        <li><span class="parameter">captures</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         A list of the captures.
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">A</span></span>
-        root node.
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        A new map with the captures under keys.
     </ol>
 
 
