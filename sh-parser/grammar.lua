@@ -205,72 +205,191 @@ local function capture_and_or (create_node, start_pos, captures, subject)
   return node
 end
 
---- Skip already captured here-document.
+--- Predicate function that matches start of the here-document's content and
+-- returns the corresponding HereDocInfo table.
 --
--- This is a function for match-time capture that is called from grammar each
--- time when a new line is consumed. When the current position of the parser is
--- inside previously captured heredoc, then it returns position of the end of
--- that heredoc. Basically it teleports parser behind the heredoc.
+-- This match-time capture function is called by the parser each time when
+-- a new line is consumed (see the rule *newline_list*).
+--
+-- @usage
+--   Cg(Cmt(_heredocs_stack, find_heredoc), 'heredoc')
 --
 -- @tparam string _ The entire subject (unused).
 -- @tparam int pos The current position.
--- @tparam {{int,int},...} heredocs (see `capture_heredoc`)
--- @treturn int The new current position.
-local function skip_heredoc (_, pos, heredocs)
-  -- Note: Elements are ordered from latest to earliest to optimize this lookup.
-  -- Note: We cannot remove skipped heredocs in this function, because the
-  --       matched rule may be eventually backtracked!
-  for _, range in ipairs(heredocs) do
-    local first, last = range[1], range[2]
+-- @tparam {HereDocInfo,...} heredocs (see `capture_heredoc`)
+-- @treturn[1] false (no match)
+-- @treturn[2] true (match)
+-- @treturn[2] HereDocInfo
+local function find_heredoc (_, pos, heredocs)
+  -- Heredocs list is ordered from latest to earliest to optimize this lookup.
+  for _, heredoc in ipairs(heredocs) do
+    local cont_start = heredoc.cont_start
 
-    if pos > last then
-      break
-    elseif pos >= first and pos < last then
-      return last
+    if pos == cont_start then
+      return true, heredoc
+    elseif pos > cont_start then
+      return false
     end
   end
 
-  return pos
+  return false
 end
 
---- Capture here-document.
+--- Captures here-document redirection.
 --
 -- @tparam bool strip_tabs Whether to strip leading tabs (for `<<-`).
 -- @tparam string subject The entire subject (i.e. input text).
 -- @tparam int pos The current position.
 -- @tparam string delimiter The captured delimiter string.
--- @tparam bool expand Should be heredoc content expanded?
--- @tparam {{int,int},...} heredocs The list with positions of captured
---   heredocs. Each element is a list with two integers - position of the first
---   character inside heredoc and position of newline after closing delimiter.
+-- @tparam bool quoted Is any character in the delimiter word quoted?
+-- @tparam {HereDocInfo,...} heredocs The list of parsed here-document
+--   redirections into which a new HereDocInfo will be added.
 -- @treturn true Match and do not consume any input.
--- @treturn table Heredoc content.
-local function capture_heredoc (strip_tabs, subject, pos, delimiter, expand, heredocs)
+-- @treturn string The delimiter word.
+-- @treturn table A "placeholder" for future content.
+-- @treturn int ID of the here-document.
+-- @raise Error if here-document is not terminated.
+local function capture_heredoc (strip_tabs, subject, pos, delimiter, quoted, heredocs)
   local delim_pat = '\n'..(strip_tabs and '\t*' or '')
                         ..delimiter:gsub('%p', '%%%1')  -- escape puncatation chars
                         ..'\n'
-  local doc_start = subject:find('\n', pos, true) or #subject
-  local doc_end, delim_end = (subject..'\n'):find(delim_pat, doc_start)
-  if not doc_end then
-    doc_end, delim_end = #subject + 1, #subject
+
+  local nl_pos = subject:find('\n', pos, true)
+  local cont_start = nl_pos and nl_pos + 1 or #subject
+
+  local cont_end, delim_end = (subject..'\n'):find(delim_pat, nl_pos or #subject)
+  if not cont_end then
+    -- This is somehow valid in shell implementations, but we can't parse it.
+    -- Since this is most likely an error in the script, just raise an error.
+    error(('%d: Here-document with delimiter "%s" is not terminated'):format(pos, delimiter))
   end
 
   -- Skip overlapping heredocs (multiple heredoc redirects on the same line).
   while true do
-    local new_pos = skip_heredoc(nil, doc_start, heredocs)
-    if new_pos == doc_start then
+    local _, entry = find_heredoc(nil, cont_start, heredocs)
+    if entry then
+      cont_start = entry.delim_end + 1
+    else
       break
     end
-    doc_start = new_pos
   end
 
-  unshift(heredocs, { doc_start, delim_end or #subject, expand })
+  local content = {}
+  local id = #heredocs + 1
 
-  local content = subject:sub(doc_start, doc_end - 1)  -- keep leading newline
-  content = strip_tabs and content:gsub('\n\t+', '\n') or content
-  content = content:sub(2)  -- strip leading newline
+  --- @table HereDocInfo
+  local heredoc = {
+    id         = id,         -- int: ID of this heredoc.
+    cont_start = cont_start, -- int: Position of the first character of the heredoc's content.
+    cont_end   = cont_end,   -- int: Position of trailing newline of the heredoc's content.
+                             -- It's `cont_start - 1` if there's no content (not even blank line)!
+    delim_end  = delim_end,  -- int: Position of a newline after the closing delimiter.
+    quoted     = quoted,     -- bool: false if word expansions should be parsed, true otherwise.
+    content    = content,    -- table: An empty table that will be mutated into *HereDocContent*.
+  }
+  unshift(heredocs, heredoc)
 
-  return true, delimiter, content
+  return true, delimiter, content, id
+end
+
+--- Predicate function that matches when the `pos` is inside the here-document
+-- specified by the `heredoc`. It does not consume any input.
+--
+-- @usage
+--   Cg(Cmt(_heredocs_stack, find_heredoc), 'heredoc')
+--   Cmt(Cb'heredoc', inside_heredoc)
+--
+-- @tparam string _ The entire subject (unused).
+-- @tparam int pos The current position.
+-- @tparam HereDocInfo heredoc (see `capture_heredoc`)
+-- @treturn bool Whether the `pos` is inside the here-document.
+local function inside_heredoc (_, pos, heredoc)
+  local cont_end = heredoc.cont_end
+
+  if pos == heredoc.cont_start then
+    return true
+  end
+
+  if pos > cont_end then
+    return false
+  elseif pos >= heredoc.cont_start then
+    return true
+  else
+    return false
+  end
+end
+
+--- Captures content of the specified quoted or empty here-document.
+--
+-- This function is used as a match-time capture to match and capture content
+-- of a here-document with quoted delimiter (which means that the content is
+-- not expanded).
+--
+-- @usage
+--   Cg(Cmt(_heredocs_stack, find_heredoc), 'heredoc')
+--   Cmt(Cb'heredoc', capture_nonexp_heredoc)
+--
+-- @tparam string subject The entire subject (i.e. input text).
+-- @tparam int pos The current position.
+-- @tparam HereDocInfo heredoc (see `capture_heredoc`)
+-- @treturn[1] boolean true to match without consuming any input,
+--   false to not match.
+-- @treturn[2] int A new position (at the end of the content).
+-- @treturn[2] string The here-document's content.
+local function capture_nonexp_heredoc (subject, pos, heredoc)
+  local cont_end = heredoc.cont_end
+
+  -- If there's no content (e.g. `<<EOF\nEOF\n`), match without consuming any
+  -- input and producing any capture;
+  if cont_end == pos - 1 then
+    return true
+  -- if quoted heredoc (i.e. expansions should *not* be parsed) or the content
+  -- is an empty line, consume and capture the content;
+  elseif heredoc.quoted or cont_end - pos < 1 then
+    return cont_end + 1, subject:sub(pos, cont_end - 1)
+  -- else do not match.
+  else
+    return false
+  end
+end
+
+local function heredoc_id (heredoc)
+  return heredoc.id
+end
+
+--- Inject the given *HereDocContent* AST node into the "content placeholder"
+-- that has been passed into the *RedirectHereDoc* node.
+--
+-- The problem here is that here-document's content may not immediatelly follow
+-- the redirection (e.g. `<<EOF`); it begins after the next *newline* and there
+-- may be anything between the redirection and the newline (e.g.
+-- `cat <<EOF; echo "allons-y!"\nContent starts here...`).
+--
+-- The *RedirectHereDoc* rule produces capture with an empty table as a
+-- "content placeholder". This "placeholder" is created in the
+-- `capture_heredoc` function and its reference is stored in the `HereDocInfo`
+-- table. This function is called after the *HereDocContent* is parsed
+-- and produced. It gets the *HereDocContent* (content_node), finds the
+-- `HereDocInfo` and copies all keys and metatable from the given
+-- `content_node` into the "content placeholder" from the `HereDocInfo`.
+--
+-- Note that this is an ugly hack that abuses mutability of Lua tables.
+--
+-- @tparam int pos The current position.
+-- @tparam table content_node The *HereDocContent* AST node.
+-- @tparam {HereDocInfo,...} heredocs (see `capture_heredoc`)
+-- @raise Error if heredoc is not found (should not happen).
+local function inject_heredoc (pos, content_node, heredocs)
+  local _, heredoc = find_heredoc(nil, pos, heredocs)
+  if not heredoc then
+    error 'invalid state, this should not happen'
+  end
+
+  local placeholder = heredoc.content
+  for k, v in pairs(content_node) do
+    placeholder[k] = v
+  end
+  setmetatable(placeholder, getmetatable(content_node))
 end
 
 
@@ -280,7 +399,7 @@ local function grammar (_ENV)  --luacheck: no unused args
 
   local _create_node    = Carg(1)  -- callback function for creating AST nodes
   local _subject        = Carg(2)  -- the input being parsed
-  local _heredocs_stack = Carg(3)  -- support stack used for skipping heredocs
+  local _heredocs_stack = Carg(3)  -- support stack used for parsing heredocs
 
   local _  = ( WSP + ESC * LF )^0  -- optional whitespace(s)
   local __ = ( (ESC * LF)^0 * WSP )^1  -- at least one whitespace
@@ -402,8 +521,8 @@ local function grammar (_ENV)  --luacheck: no unused args
                          + LESSGREAT_OP + GREAT_OP + LESS_OP )
   -- Note: If the delimiter contains any quoted string (even `eo'f'`, `eof""`,
   -- `""eof`, ...), then the shell does not expand the content.
-  heredoc_delim       = unquoted_word * Cc(true)
-                      + Cf(( squoted_word + dquoted_str + unquoted_word )^1, op.concat) * Cc(false)
+  heredoc_delim       = unquoted_word * Cc(false)
+                      + Cf(( squoted_word + dquoted_str + unquoted_word )^1, op.concat) * Cc(true)
   dquoted_str         = DQUOTE * Cs( any_except(DQUOTE, expansion_begin)^0 ) * DQUOTE
 
   Assignment          = Name * EQUALS * Word^-1
@@ -422,12 +541,24 @@ local function grammar (_ENV)  --luacheck: no unused args
                                  )^0 * DQUOTE
   unquoted_word       = Cs( any_except(WSP, LF, SQUOTE, DQUOTE, OPERATOR_CHARS, expansion_begin)^1 )
 
-  -- Cg is used here to force evaluation of the Comment rule (and so calling
-  -- create_node) without producing any capture; to discard comments from AST.
+  -- Cg is used here to force evaluation of the Comment/HereDocContent rule
+  -- (and so calling create_node) without producing any capture.
   newline_list        = ( _ * Cg(Comment, '__comment')^-1 * LF
-                        * Cmt(_heredocs_stack, skip_heredoc)
+                        * Cg(heredoc_content, '__heredoc')^0
                         )^1 * _
   linebreak           = _ * newline_list^-1
+
+  heredoc_content     = Cp() * HereDocContent * _heredocs_stack / inject_heredoc
+  HereDocContent      = Cg( Cmt(_heredocs_stack, find_heredoc), 'heredoc')
+                        * Ct( Cmt( Cb'heredoc', capture_nonexp_heredoc)
+                          + heredoc_content_exp )
+                        * heredoc_end_line * ( Cb'heredoc' / heredoc_id )
+  heredoc_content_exp = ( expansion
+                        + Cf( heredoc_line_noexp^1, op.concat)
+                        )^1 * LF
+  heredoc_line_noexp  = Cs( ( any_except(expansion_begin) - LF )^1 )
+                      + C(LF) * Cmt( Cb'heredoc', inside_heredoc)
+  heredoc_end_line    = ( ANY - LF )^1 * ( LF + EOF )
 
   ---------------------------  Expansions  --------------------------
 
