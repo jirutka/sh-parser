@@ -147,7 +147,7 @@ end
 --- Creates a pattern that captures any character, except the specified
 -- patterns when not preceded by the escape character.
 --
--- Example: any_except(P' ') -> escaped(P' ') + 1 - P' '
+-- @usage any_except(P' ') --> escaped(P' ') + 1 - P' '
 --
 -- @tparam lpeg.Pattern ... The patterns to *not* capture.
 -- @treturn lpeg.Pattern
@@ -157,33 +157,32 @@ local function any_except (...)
        + patts:reduce(op.sub, ANY)
 end
 
---- Transforms captures from *and_or_list* into left-associative tree of n-ary
+--- Transforms captures from *and\_or\_list* into left-associative tree of n-ary
 -- nodes *AndList* and *OrList*.
 --
 -- This function is basically a workaround to create AST for left-associative
 -- operators with the same precedence - `&&` and `||`.
 --
--- ## Example
+-- @usage
+--   subject = "a && b && c || d || e && f"
+--   captures = { {a}, 2, "&&", {b}, 7, "&&", {c}, 12, "||",
+--                {d}, 17, "||", {e}, 22, "&&", {f}, 27 }
 --
---     subject = "a && b && c || d || e && f"
+--   capture_and_or(create_node, 1, captures, subject) --> Z
+--     ~> create_node("AndList", 1, {a, b, c}, 12) --> X
+--     ~> create_node("OrList", 1, {X, d, e}, 22) --> Y
+--     ~> create_node("AndList", 1, {Y, f}, 27) --> Z
 --
---     capture_and_or([func], 1, {{a}, 2, "&&", {b}, 7, "&&", {c}, 12, "||",
---                                {d}, 17, "||", {e}, 22, "&&", {f}, 27}) -> Z
---     create_node("AndList", 1, {a, b, c}, 12) -> X
---     create_node("OrList", 1, {X, d, e}, 22) -> Y
---     create_node("AndList", 1, {Y, f}, 27) -> Z
+--    Z        Y       X
+--   (AndList (OrList (AndList a b c) d e) f)
 --
---      Z        Y       X
---     (AndList (OrList (AndList a b c) d e) f)
---
--- @tparam function create_node The function to be called to create AST nodes.
+-- @tparam func create_node The function to be called to create AST nodes.
 -- @tparam int start_pos Index of the first character of the captured substring.
--- @tparam table captures Table with shape `{ table,int,string, table,int,string, ... }`.
+-- @tparam table captures Table with shape `{table,int,string, table,int,string, ...}`.
 --   Element *i* is table of children nodes (pipeline and optional comments),
 --   *i + 1* is position of the end of the last child node (int), *i + 2* is
 --   operator ("&&", or "||").
 -- @tparam string subject The entire subject (i.e. input text).
--- @tparam table state
 -- @return Result of the last call of `create_node`.
 local function capture_and_or (create_node, start_pos, captures, subject)
   local node_name = { ['&&'] = 'AndList', ['||'] = 'OrList' }
@@ -244,7 +243,7 @@ end
 -- @tparam {{int,int},...} heredocs The list with positions of captured
 --   heredocs. Each element is a list with two integers - position of the first
 --   character inside heredoc and position of newline after closing delimiter.
--- @treturn true Consume no subject.
+-- @treturn true Match and do not consume any input.
 -- @treturn table Heredoc content.
 local function capture_heredoc (strip_tabs, subject, pos, delimiter, expand, heredocs)
   local delim_pat = '\n'..(strip_tabs and '\t*' or '')
@@ -275,7 +274,7 @@ local function capture_heredoc (strip_tabs, subject, pos, delimiter, expand, her
 end
 
 
---- Grammar to be processed by `lpeg_sugar`.
+-- Grammar to be processed by `lpeg_sugar`.
 local function grammar (_ENV)  --luacheck: no unused args
   --luacheck: allow defined, ignore 113 131
 
