@@ -30,10 +30,14 @@ Arguments:
   FILE  Path of script to parse or "-" to read from stdin.
 
 Options:
-  -p, --pretty          Print pretty formatted JSON.
-  -t, --trace           Trace parser (needs pegdebug module).
-  -V, --version         Show version information and exit
-  -h, --help            Show this message and exit
+  -c, --comments  Include comments.
+  -l, --loc       Include nodes' location as start and end absolute position
+                  in the source script.
+  -p, --pretty    Print pretty formatted JSON.
+  -t, --trace     Trace parser (needs pegdebug module).
+  -s, --source    Include raw source in all nodes except the root node.
+  -V, --version   Show version information and exit
+  -h, --help      Show this message and exit
 
 Homepage: https://github.com/jirutka/sh-parser]]
 
