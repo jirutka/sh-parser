@@ -35,6 +35,7 @@ build = {
     ['sh-parser.ast.simple'] = 'sh-parser/ast/simple.lua',
     ['sh-parser.fun_ext'] = 'sh-parser/fun_ext.lua',
     ['sh-parser.grammar'] = 'sh-parser/grammar.lua',
+    ['sh-parser.location_resolver'] = 'sh-parser/location_resolver.lua',
     ['sh-parser.lpeg_sugar'] = 'sh-parser/lpeg_sugar.lua',
     ['sh-parser.parser'] = 'sh-parser/parser.lua',
     ['sh-parser.utils'] = 'sh-parser/utils.lua',
