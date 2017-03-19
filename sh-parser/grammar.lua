@@ -578,7 +578,8 @@ local function grammar (_ENV)  --luacheck: no unused args
   -- deprecated, we parse it just as a single quoted text.
   CommandSubBackquote = BQUOTE * Cs( any_except(BQUOTE)^0 ) * BQUOTE
 
-  ParameterExpansion  = DOLLAR * ( encl_param_exp + param_name )
+  ParameterExpansion  = DOLLAR * ( encl_param_exp
+                                 + Cc(nil) * param_name )
   encl_param_exp      = LBRACE
                         * ( C(HASH) + Cc(nil) )  -- prefix operator
                         * param_name
