@@ -11,7 +11,7 @@ local map    = fun.map
 local type   = type
 
 -- unpack is not global since Lua 5.3
-local unpack = table.unpack or unpack  --luacheck: std lua51
+local unpack = table.unpack or unpack  --luacheck: ignore
 
 
 --- Calls the function `func` with the given arguments. This is equivalent to:
