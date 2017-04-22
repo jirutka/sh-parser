@@ -27,4 +27,4 @@ deploy:
   all_branches: true
   on:
     condition: |
-      ( "$TRAVIS_BRANCH" = master || "$TRAVIS_TAG" = v* ) && "$LUA_VERSION" = lua-5.3
+      "$TRAVIS_BRANCH" = master || "$TRAVIS_TAG" = v* && "$LUA_VERSION" = lua-5.3
