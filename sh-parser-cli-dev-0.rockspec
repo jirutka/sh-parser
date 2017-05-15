@@ -28,6 +28,7 @@ dependencies = {
 
 build = {
   type = 'builtin',
+  modules = {},
   install = {
     bin = {
       ['sh-parser'] = 'bin/sh-parser'
