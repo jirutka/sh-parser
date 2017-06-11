@@ -2,6 +2,7 @@ sudo: false
 dist: trusty
 env:
   global:
+    - secure: bxT167kt5bGwg2HQKA3NJYgWj+SgEHCpVuMoKHgfzZ6tJhNUXUv5mO3Aa5OOs7o6rC+UcI39W7vHvUyv5cekUGABIQ+zRh409zfAIq33BPWnZ4CE9+NnAPxUWhDs9unTcMmmoIiwJ8BGNMCDi5acmVmq/ExGld8kdTUEHS79ZWioj8ZerR0BDCgKkSEI+ZcrTwtUMTsNOYi6fnqoH21LEWmujeni8fBKSGkFmRY1JySa3DtVSN5e4WgUnxYDwpFws2kAj6h0GPgRT6jm9lSsCkS6/g5dNgrEcmnCH/vG5yKYBnN8kFSLOOxXQRPjrqxssLS3+67k0/jlc3C+kq0syZTyKoaQLCsj1ruh/+BtEfa26P7la7xNxcgGpBiFQvNpjOMFpvTdgrLOUMiFs541c/gx682LjXoPWwWSEgvnS1dGbsWlHLZCTAS2nw1Wf8tzHknlYA831Plik2zIJpJl9JgfRqXR8+lDSvCQyroSDHrcQck5ymrvHtJOtPFjVeDp6RH2Sq9JJEyudh71pXMat5xbO7WFy2vwJLiqkKCFtGdiq4geNW3fO8d+ttrrwbE3fTr/yLNaEpS8T1ULnE4HGgC9KpcbW1KtKdWxj7fV0fReg+EKVvCbF1ciKNuP9TF1ljs2ijgiDMKySdQk+3nL19BDOHapOKYDGQBftSMLJlk=  # GH_TOKEN
     - secure: Ai7wIggL88jnPTE89gviZWAgOa7Rvp5JkCPvr+BjAeC1rei5Awcf/9y6EvefG8VhxLDgAa/xwVBc7xrxCoqSjMRf50LKJDdhRRoT9evv+2mZTL9SQXbS0kYtqmWDNymbciwFhKZ/Qn0xuZhOsgsee0Erh8goVoizuB8MWzUw588kjb9PgeTzw5zkkU7xyqp9VjUG4JY/LgY59onoBRR2bPyOfXFF4oWuih89n4zaliLz+KO9/Ziyi/GeilQuW0AeYlGB+BN1US9jW+ooyF19j1oUurUCUDKfU0zZuDJsO3e2SyDcDN3fcnCI5S9qA+jrnK3RZmEveA6+9v4dSDjwjjFkRz/wjy6SdCP94gOfmffvcHvtwe7clnMl6ASVDhuWeRA+4AzcuXHYDcqXV4cmj7gwo4B4wtiO4N7ksxsg+wEsnDF/uN1DUFBjO5yAxZyhwFsPBDp4gu/ajbPRUnn5sV1r3nylNjZIGy4sZ23xArm9NJbyR5RXCxGOMU+MgtucnVazzeLoTRSZD9ANoIHk9ciBxtCs72FU61/S7iApwYOxWEhKCCtyZKFcRgQVmMKeyHQT8qRI87g0/EY6s+SeoC53XNBCc611mmNZqO5geUWTfQfOtjtZ2Jd+xbkw06JMswsfLc8OJ4i5C5H/lYV+NvdlCXBsfYGc2PnDWoMSJ6s=  # LUAROCKS_KEY
   matrix:
     - LUA_VERSION=luajit-2.0
@@ -18,7 +19,6 @@ install:
 script:
   - script/test
 after_success:
-  - script/travis-decrypt
   - script/deploy-docs
 deploy:
   provider: script

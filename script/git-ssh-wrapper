@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if [ -n "$SSH_DEPLOY_KEY" ]; then
-	ssh -i "$SSH_DEPLOY_KEY" "$@"
-else
-	ssh "$@"
-fi

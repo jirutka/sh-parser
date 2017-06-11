@@ -4,11 +4,13 @@
 # Generates docs using ldoc and deploys them to the gh-pages branch in
 # the repository.
 #
+# Environment variables:
+#   GH_TOKEN : GitHub Personal Token to use for authentication when pushing
+#              back into the repository.
 set -eu
 
 DEPLOY_BRANCH='gh-pages'
 SOURCE_BRANCH='master'
-SSH_DEPLOY_KEY='.deploykey'
 
 
 build_docs() {
@@ -31,11 +33,20 @@ has_changes() {
 }
 
 remote_origin_url() {
-	if [ -r "$SSH_DEPLOY_KEY" ]; then
+	if [ -n "${GH_TOKEN:-}" ]; then
 		git config remote.origin.url \
-			| sed -E 's|^https://([^/]+)/(.*)$|git@\1:\2|'
+			| sed 's|^git:|https:|' \
+			| sed "s|^https://|https://${GH_TOKEN}@|"
 	else
 		git config remote.origin.url
+	fi
+}
+
+shield() {
+	if [ -n "${GH_TOKEN:-}" ]; then
+		eval $@ 2>&1 | sed "s/$GH_TOKEN/*****/g"
+	else
+		eval $@
 	fi
 }
 
@@ -61,18 +72,12 @@ commit_date="$(git log -n 1 --format='%aD')"
 remote_url="$(remote_origin_url)" || die 'Failed to get remote.origin.url'
 build_dir="$(mktemp -q -d "${TMPDIR:-"/tmp"}/docs.XXXX")"
 
-# Use the specified SSH key for cloning/pushing repository, if it's readable.
-if [ -r "$SSH_DEPLOY_KEY" ]; then
-	export SSH_DEPLOY_KEY="$(pwd)/$SSH_DEPLOY_KEY"
-	export GIT_SSH="$(pwd)/script/git-ssh-wrapper"
-fi
-
 if [ -n "${TRAVIS:-}" ]; then
 	git config --global user.name 'Travis CI'
 	git config --global user.email 'travis-ci@local.host'
 fi
 
-git clone --progress "$remote_url" "$build_dir"
+shield git clone --progress "$remote_url" "$build_dir"
 git -C "$build_dir" checkout "$DEPLOY_BRANCH" \
 	|| die "Branch $DEPLOY_BRANCH does not exist"
 
@@ -95,6 +100,6 @@ git commit \
 	--date="$commit_date"
 
 einfo "Pushing changes to $DEPLOY_BRANCH branch"
-git push --progress "$remote_url" "$DEPLOY_BRANCH:$DEPLOY_BRANCH"
+shield git push --progress "$remote_url" "$DEPLOY_BRANCH:$DEPLOY_BRANCH"
 
 rm -Rf -- "$build_dir"
