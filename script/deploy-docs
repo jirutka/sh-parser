@@ -1,8 +1,7 @@
 #!/bin/sh
 # vim: set ts=4:
 #
-# Generates docs using ldoc and deploys them to the gh-pages branch in
-# the repository.
+# Deploys doc/ to the gh-pages branch in the repository.
 #
 # Environment variables:
 #   GH_TOKEN : GitHub Personal Token to use for authentication when pushing
@@ -13,14 +12,14 @@ DEPLOY_BRANCH='gh-pages'
 SOURCE_BRANCH='master'
 
 
-build_docs() {
+copy_docs() {
 	local build_dir="$1"
 
-	# This is needed for cleaning stale files; all docs will be regenerated.
-	rm -Rf -- "$build_dir"/ldoc/*
+	test -d doc || die "Directory $(pwd)/doc does not exist"
 
-	einfo 'Running ldoc'
-	ldoc --dir "$build_dir"/ldoc --verbose .
+	rm -Rf -- "$build_dir"/ldoc/*
+	mkdir -p "$build_dir"/ldoc/*
+	cp -r doc/* "$build_dir"/ldoc/
 
 	# Remove Last updated timestamp.
 	LANG=C find "$build_dir"/ldoc -name '*.html' \
@@ -50,19 +49,11 @@ shield() {
 	fi
 }
 
-skip_push() {
-	[ -n "${TRAVIS:-}" ] || return 1
-
-	[ "$TRAVIS_PULL_REQUEST" != 'false' ] \
-		|| [ "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" ] \
-		|| [ "$TRAVIS_BUILD_NUMBER.1" != "$TRAVIS_JOB_NUMBER" ]
-}
-
 
 #========================  Main  =========================#
 
 cd "$(dirname "$0")/.."
-. script/bootstrap
+. script/utils.sh
 
 einfo 'Updating ldoc documentation'
 
@@ -81,15 +72,12 @@ shield git clone --progress "$remote_url" "$build_dir"
 git -C "$build_dir" checkout "$DEPLOY_BRANCH" \
 	|| die "Branch $DEPLOY_BRANCH does not exist"
 
-build_docs "$build_dir"
+copy_docs "$build_dir"
 
 cd "$build_dir"
 
 if ! has_changes; then
 	ewarn 'No changes'; exit 0
-fi
-if skip_push; then
-	ewarn 'Skipping push'; exit 0
 fi
 
 einfo 'Commiting changes'

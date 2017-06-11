@@ -14,17 +14,36 @@ cache:
   directories:
     - .venv
 install:
-  - source .envrc
   - script/bootstrap
 script:
   - script/test
-after_success:
-  - script/deploy-docs
-deploy:
-  provider: script
-  script: script/deploy-rocks
-  skip_cleanup: true
-  all_branches: true
-  on:
-    condition: |
-      "$TRAVIS_BRANCH" = master || "$TRAVIS_TAG" = v* && "$LUA_VERSION" = lua-5.3
+
+jobs:
+  include:
+    # Deploy documentation to GitHub Pages.
+    - stage: deploy
+      env:
+        - NAME="Deploy docs"
+        - LUA_VERSION=lua-5.3
+      script:
+        - script/build-docs
+      deploy:
+        provider: script
+        script: script/deploy-docs
+        skip_cleanup: true
+        on:
+          branch: master
+
+    # Deploy Lua packages to LuaRocks.
+    - stage: deploy
+      env:
+        - NAME="Deploy rocks"
+        - LUA_VERSION=lua-5.3
+      script: skip
+      deploy:
+        provider: script
+        script: script/deploy-rocks
+        skip_cleanup: true
+        all_branches: true
+        on:
+          condition: '"$TRAVIS_BRANCH" = master || -n "$TRAVIS_TAG"'
