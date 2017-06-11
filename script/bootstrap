@@ -40,6 +40,8 @@ if [ ! -x "$VENV_DIR"/bin/luarocks ]; then
 	printf '\n'
 fi
 
+. ./.envrc
+
 einfo 'Installing lua modules'
 cat Rocksfile | sed -En 's/^([^#]+).*/\1/p' | while read -r rockname; do
 	luarocks --mversion show "${rockname#*/}" >/dev/null 2>&1 \
