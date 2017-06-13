@@ -1,0 +1,755 @@
+= AST
+:toc:
+:toclevels: 4
+// custom
+:uri-posix: http://pubs.opengroup.org/onlinepubs/9699919799
+:uri-posix-scl: {uri-posix}/utilities/V3_chap02.html
+
+TODO: Explain two types of representation (low-level and high-level API).
+
+
+== Program
+
+The root node of the AST tree.
+
+.Captures
+[source, subs="+macros"]
+{ ( <<SequentialList>>
+  | <<AsyncCommand>>
+  | <<AndOrList>>
+  | <<Not>>
+  | <<PipeSequence>>
+  | <<Command>> )* }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Program',
+  body: [ ( <<SequentialList>>
+          | <<AsyncCommand>>
+          | <<AndOrList>>
+          | <<Not>>
+          | <<PipeSequence>>
+          | <<Command>> )* ],
+  comments: [ <<Comment>>* ]
+}
+
+
+== CompoundList
+
+.Captures
+[source, subs="+macros"]
+{ ( <<SequentialList>>
+  | <<AsyncCommand>>
+  | <<AndOrList>>
+  | <<Not>>
+  | <<PipeSequence>>
+  | <<Command>> )+ }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'CompoundList',
+  cmds: [ ( <<SequentialList>>
+          | <<AsyncCommand>>
+          | <<AndOrList>>
+          | <<Not>>
+          | <<PipeSequence>>
+          | <<Command>> )+ ]
+}
+
+
+== SequentialList
+
+> Commands that are separated by a semicolon `;` shall be executed sequentially.
+> {uri-posix-scl}#tag_02_09_03_04[Read more…]
+
+.Format
+[source]
+command1; command2 [; command3 ] ... [;]
+
+.Captures
+[source, subs="+macros"]
+{ ( <<AsyncCommand>>
+  | <<AndOrList>>
+  | <<Not>>
+  | <<PipeSequence>>
+  | <<Command>> )+ }
+
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'SequentialList',
+  cmds: [ ( <<AsyncCommand>>
+          | <<AndOrList>>
+          | <<Not>>
+          | <<PipeSequence>>
+          | <<Command>> )+ ]
+}
+
+
+== AsyncCommand
+
+> If a command is terminated by the control operator `&`, the shell shall execute the command asynchronously in a subshell.
+> {uri-posix-scl}#tag_18_09_03_02[Read more…]
+
+.Format
+[source]
+command &
+
+.Captures
+[source, subs="+macros"]
+{ ( <<AndOrList>>
+  | <<Not>>
+  | <<PipeSequence>>
+  | <<Command>> ) }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'AsyncCommand',
+  cmd: ( <<AndOrList>>
+       | <<Not>>
+       | <<PipeSequence>>
+       | <<Command>> )
+}
+
+
+== AndOrList
+
+> An _AND-OR list_ is a sequence of one or more pipelines separated by the operators `&&` and `||`.
+> They shall have equal precedence and shall be evaluated with left associativity.
+> {uri-posix-scl}#tag_02_09_03[Read more…]
+
+.Format
+[source]
+command1 && command2 [ || command3] ...
+command1 || command2 [ && command3] ...
+
+
+=== AndList
+
+.Captures
+[source, subs="+macros"]
+{
+  ( <<OrList>>
+  | <<Not>>
+  | <<PipeSequence>>
+  | <<Command>> ),
+  (
+    ( <<Not>>
+    | <<PipeSequence>>
+    | <<Command>> )
+  )+
+}
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'AndList',
+  cmds: [ ( <<OrList>>
+          | <<Not>>
+          | <<PipeSequence>>
+          | <<Command>> ),
+          (
+            ( <<Not>>
+            | <<PipeSequence>>
+            | <<Command>> )
+          )+ ]
+}
+
+
+=== OrList
+
+.Captures
+[source, subs="+macros"]
+{
+  ( <<AndList>>
+  | <<Not>>
+  | <<PipeSequence>>
+  | <<Command>> ),
+  (
+    ( <<Not>>
+    | <<PipeSequence>>
+    | <<Command>> )
+  )+
+}
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'OrList',
+  cmds: [ ( <<AndList>>
+          | <<Not>>
+          | <<PipeSequence>>
+          | <<Command>> ),
+          (
+            ( <<Not>>
+            | <<PipeSequence>>
+            | <<Command>> )
+          )+ ]
+}
+
+
+== Not
+
+.Format
+[source]
+! command
+
+.Captures
+[source, subs="+macros"]
+{ ( <<PipeSequence>>
+  | <<Command>> ) }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Not',
+  cmd: ( <<PipeSequence>>
+       | <<Command>> )
+}
+
+
+== PipeSequence
+
+> A _pipeline_ is a sequence of one or more commands separated by the control operator `|`.
+> For each command but the last, the shell shall connect the standard output of the command to the standard input of the next command as if by creating a pipe and passing the write end of the pipe as the standard output of the command and the read end of the pipe as the standard input of the next command.
+> {uri-posix-scl}#tag_18_09_02[Read more…]
+
+.Format
+[source]
+command1 | command2 [| command3 ] ...
+
+.Captures
+[source, subs="+macros"]
+{ <<Command>>+ }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'PipeSequence',
+  cmds: [ <<Command>>+ ]
+}
+
+
+== Command
+
+
+=== SimpleCommand
+
+> A “simple command” is a sequence of optional variable assignments and redirections, in any sequence, optionally followed by words and redirections, terminated by a control operator.
+> {uri-posix-scl}#tag_18_09_01[Read more…]
+
+.Captures
+[source, subs="+macros"]
+----
+{ { ( <<Redirect>> | <<Assignment>> )* }, <<Word>> | nil, { ( <<Redirect>> | <<Word>> )* } | nil }
+----
+<1> Redirections and assignments (prefix).
+<2> Command name. If nil, then (1) is not empty and (3) is nil.
+<3> Redirections and command arguments (suffix).
+
+.Nodes
+TODO
+
+
+=== Assignments
+
+.Format
+[source]
+[modifier] varname=value ...
+
+.Nodes
+[source, subs="+macros"]
+{
+  type: 'Assignments',
+  assignments: [ <<Assignment>>+ ],
+  modifier: 'export' | 'local' | 'readonly' | null
+}
+
+
+=== CompoundCommand
+
+
+==== BraceGroup
+
+> Execute _compound-list_ in the current process environment.
+> {uri-posix-scl}#tag_18_09_04[Read more…]
+
+.Format
+[source]
+{ compound-list ; }
+
+.Captures
+[source, subs="+macros"]
+{ <<CompoundList>>, { <<Redirect>>* } }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'BraceGroup',
+  body: <<CompoundList>>,
+  redirs: [ <<Redirect>>* ]
+}
+
+
+==== Subshell
+
+> Execute _compound-list_ in a subshell environment; see {uri-posix-scl}#tag_18_12[Shell Execution Environment].
+> {uri-posix-scl}#tag_18_09_04[Read more…]
+
+.Format
+[source]
+( compound-list )
+
+.Captures
+[source, subs="+macros"]
+{ <<CompoundList>> | nil, { <<Redirect>>* } }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Subshell',
+  body: <<CompoundList>> | null,
+  redirs: [ <<Redirect>>* ]
+}
+
+
+==== If
+
+> The *if* command shall execute a _compound-list_ and use its exit status to determine whether to execute another _compound-list_.
+> {uri-posix-scl}#tag_18_09_04_07[Read more…]
+
+.Format
+[source]
+if compound-list
+then
+    compound-list
+[elif compound-list
+then
+    compound-list] ...
+[else
+    compound-list]
+fi
+
+.Captures
+[source, subs="+macros"]
+If         : { { IfClause, ElifClause*, ElseClause? }, { <<Redirect>>* } }
+IfClause   : { <<CompoundList>>, <<CompoundList>> }
+ElifClause : { <<CompoundList>>, <<CompoundList>> }
+ElseClause : { <<CompoundList>> }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'If',
+  clauses: [ IfClause, ElifClause*, ElseClause? ],
+  redirs: [ <<Redirect>>* ]
+}
+{
+  type: 'IfClause',
+  cond: <<CompoundList>>,
+  body: <<CompoundList>>
+}
+{
+  type: 'ElifClause',
+  cond: <<CompoundList>>,
+  body: <<CompoundList>>
+}
+{
+  type: 'ElseClause',
+  body: <<CompoundList>>
+}
+
+
+==== For
+
+> The *for* loop shall execute a sequence of commands for each member in a list of _items_.
+> {uri-posix-scl}#tag_18_09_04_03[Read more…]
+
+.Format
+[source]
+for name [ in [word ... ]]
+do
+    compound-list
+done
+
+.Captures
+[source, subs="+macros"]
+----
+{ <<Name>>, { <<Word>>* }, <<CompoundList>>, { <<Redirect>>* } }
+----
+<1> Variable name.
+<2> List of items to loop over.
+<3> Body of the for loop.
+<4> Redirections.
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'For',
+  var: <<Name>>,
+  items: [ <<Word>>* ],
+  body: <<CompoundList>>,
+  redirs: [ <<Redirect>>* ]
+}
+
+
+==== Case
+
+> The conditional construct *case* shall execute the _compound-list_ corresponding to the first one of several _patterns_ (see {uri-posix-scl}#tag_18_13[Pattern Matching Notation]) that is matched by the string resulting from the tilde expansion, parameter expansion, command substitution, arithmetic expansion, and quote removal of the given word.
+> {uri-posix-scl}#tag_18_09_04_05[Read more…]
+
+.Format
+[source]
+case word in
+    [(] pattern1 ) compound-list ;;
+    [[(] pattern[ | pattern] ... ) compound-list ;;] ...
+    [[(] pattern[ | pattern] ... ) compound-list]
+esac
+
+.Captures
+[source, subs="+macros"]
+Case     : { <<Word>>, { CaseItem* }, { <<Redirect>>* } }
+CaseItem : { { <<Word>>+ }, <<CompoundList>> }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Case',
+  var: Name,
+  cases: [ CaseItem* ],
+  redirs: [ <<Redirect>>* ]
+}
+{
+  type: 'CaseItem',
+  pattern: [ <<Word>>+ ],
+  body: <<CompoundList>>
+}
+
+
+==== While
+
+> The *while* loop shall continuously execute one _compound-list_ as long as another _compound-list_ has a zero exit status.
+> {uri-posix-scl}#tag_18_09_04_09[Read more…]
+
+.Format
+[source]
+while compound-list-1
+do
+    compound-list-2
+done
+
+.Captures
+[source, subs="+macros"]
+{ <<CompoundList>>, { <<Redirect>>* } }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'While',
+  cond: <<CompoundList>>,
+  body: <<CompoundList>>,
+  redirs: [ <<Redirect>>* ]
+}
+
+
+==== Until
+
+> The **until** loop shall continuously execute one _compound-list_ as long as another _compound-list_ has a non-zero exit status.
+> {uri-posix-scl}#tag_18_09_04_11[Read more…]
+
+.Format
+[source]
+until compound-list-1
+do
+    compound-list-2
+done
+
+.Captures
+[source, subs="+macros"]
+{ <<CompoundList>>, { <<Redirect>>* } }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Until',
+  cond: <<CompoundList>>,
+  body: <<CompoundList>>,
+  redirs: [ <<Redirect>>* ]
+}
+
+
+=== FunctionDef
+
+> A function is a user-defined name that is used as a simple command to call a compound command with new positional parameters.
+> {uri-posix-scl}#tag_18_09_05[Read more…]
+
+
+.Format
+[source]
+fname ( ) compound-command [io-redirect ...]
+
+.Captures
+[source, subs="+macros"]
+{ <<Name>>, <<CompoundCommand>>, { <<Redirect>>* } }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'FunctionDef',
+  name: <<Name>>,
+  body: <<CompoundCommand>>,
+  redirs: [ <<Redirect>>* ]
+}
+
+
+== Redirect
+
+> Redirection is used to open and close files for the current shell execution environment (see {uri-posix-scl}#tag_18_12[Shell Execution Environment]) or for any command.
+> {uri-posix-scl}#tag_18_07[Read more…]
+
+
+=== RedirectFile
+
+.Format
+[source]
+[n]redir-file-op word
+
+.Captures
+[source, subs="+macros"]
+----
+{ number | nil, redir-file-op, <<Word>> }
+----
+<1> File descriptor number (or _nil_ if not specified).
+<2> Operator.
+<3> File path, or file descriptor number.
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'RedirectFile',
+  fd: number | null,
+  op: redir-file-op,
+  file: <<Word>>
+}
+
+.Terminals
+[source]
+redir-file-op: '<' | '<&' | '>' | '>|' | '>>' | '>&' | '<>'
+
+
+=== RedirectHereDoc
+
+> The redirection operators `<<` and `<\<-` both allow redirection of subsequent lines read by the shell to the input of a command.
+> The redirected lines are known as a “here-document”.
+> {uri-posix-scl}#tag_18_07_04[Read more…]
+
+.Format
+[source]
+[n] <<[-] word
+    here-document
+delimiter
+
+.Captures
+[source, subs="+macros"]
+----
+{ number | nil, '<<' | '<<-', <<Word>>, <<HereDocContent>> (!), number }
+----
+<1> File descriptor number (or _nil_ if not specified).
+<2> Operator.
+<3> The delimiter word.
+<4> TODO
+<5> ID of this here-document.
+
+.Nodes
+[source, subs="+macros"]
+{
+  type: 'RedirectHereDoc',
+  fd: number | null,
+  op: '<<' | '<<-',
+  delimiter: <<Word>>,
+  content: <<Word>>
+}
+
+
+== HereDocContent
+
+.Captures
+[source, subs="+macros"]
+----
+{ { <<Word>>* }, number }
+----
+<1> File descriptor number (or _nil_ if not specified).
+<2> ID of this here-document.
+
+.Nodes
+[source, subs="+macros"]
+{
+  type: 'HereDocContent',
+  content: [ <<Word>>* ]
+}
+
+
+== Assignment
+
+.Format
+[source]
+varname=[value]
+
+.Captures
+[source, subs="+macros"]
+----
+{ <<Name>>, <<Word>> | nil }
+----
+<1> Variable name.
+<2> Assigned value.
+
+.Nodes
+[source, subs="+macros"]
+{
+  type: 'Assignment',
+  name: <<Name>>,
+  value: <<Word>> | null
+}
+
+
+== Name
+
+.Captures
+[source, subs="+macros"]
+{ string }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Name',
+  text: string
+}
+
+
+== Word
+
+.Captures
+[source, subs="+macros"]
+{ ( string | <<Expansion>> )+ }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Word',
+  content: [ ( string | <<Expansion>> )+ ]
+}
+
+
+=== Expansion
+
+
+==== ParameterExpansion
+
+See {uri-posix-scl}#tag_18_06_02[Parameter Expansion] for more information.
+
+.Format
+[source]
+${[prefix-op] variable [infix-op [ word ]]}
+
+.Captures
+[source, subs="+macros"]
+{ prefix-op?, param-name, ( infix-op, string )? }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'ParameterExpansion',
+  op_pre: prefix-op | null,
+  param: string,
+  op_in: infix-op | null,
+  word: string | null
+}
+
+.Terminals
+[source]
+prefix-op: '#'
+infix-op: ':-' | '-' | ':=' | '=' | ':?' | '?' | ':+' | '+' | '%%' | '%' | '##' | '#' | ':' | '//' | '/'
+
+
+==== ArithmeticExpansion
+
+> Arithmetic expansion provides a mechanism for evaluating an arithmetic expression and substituting its value.
+> {uri-posix-scl}#tag_18_06_04[Read more…]
+
+.Format
+[source]
+$((expression))
+
+.Captures
+[source, subs="+macros"]
+{ string }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'ArithmeticExpansion',
+  text: string
+}
+
+
+==== CommandSubstitution
+
+> Command substitution allows the output of a command to be substituted in place of the command name itself.
+> {uri-posix-scl}#tag_18_06_03[Read more…]
+
+.Format
+[source]
+$(command)
+
+.Captures
+[source, subs="+macros"]
+{ <<CompoundList>>* }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'CommandSubstitution',
+  cmds: [ <<CompoundList>>* ]
+}
+
+
+==== CommandSubBackquote
+
+.Format
+[source]
+`command`
+
+.Captures
+[source, subs="+macros"]
+{ string }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'CommandSubBackquote',
+  text: string
+}
+
+
+== Comment
+
+.Format
+[source]
+----
+# foo bar <LF>
+----
+
+.Captures
+[source, subs="+macros"]
+{ string }
+
+.Node
+[source, subs="+macros"]
+{
+  type: 'Comment',
+  text: string
+}
